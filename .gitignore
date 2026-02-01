@@ -1,0 +1,64 @@
+# ========================
+# OS / IDE
+# ========================
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ========================
+# ENV / Secrets
+# ========================
+.env
+.env.*
+*.keystore
+*.jks
+
+# ========================
+# Node / Expo / Web
+# ========================
+node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+
+.expo/
+.expo-shared/
+web-build/
+dist/
+build/
+
+# ========================
+# React Native / Expo
+# ========================
+android/build/
+android/.gradle/
+android/app/build/
+
+ios/Pods/
+ios/build/
+ios/*.xcworkspace
+ios/*.xcodeproj
+
+# ========================
+# Java / Spring Boot
+# ========================
+**/target/
+**/.classpath
+**/.project
+**/.settings/
+
+# ========================
+# Logs
+# ========================
+*.log
+
+# ========================
+# Git
+# ========================
+*.orig
+**/application.yaml
+**/application.yml
+
+# ===== mobile-app folder =====
+mobile-app-v2
