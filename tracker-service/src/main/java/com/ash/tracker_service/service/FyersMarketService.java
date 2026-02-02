@@ -27,11 +27,16 @@ public class FyersMarketService {
     }
 
     private String buildFyersSymbol(String symbol) {
+      
+        if (symbol.toUpperCase().startsWith("NSE:")) {
+            return symbol.toUpperCase();
+        }
+       
         return "NSE:" + symbol.toUpperCase() + "-EQ";
     }
 
     public Object getQuote(String symbol) {
-        String fyersSymbol =symbol;
+        String fyersSymbol = buildFyersSymbol(symbol);
         String url = fyersBaseUrl + "/stockData/" + fyersSymbol;
 
         return restTemplate.exchange(

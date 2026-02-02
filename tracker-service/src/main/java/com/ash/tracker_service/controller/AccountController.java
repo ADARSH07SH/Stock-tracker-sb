@@ -3,6 +3,7 @@ package com.ash.tracker_service.controller;
 import com.ash.tracker_service.dto.AccountDTO;
 import com.ash.tracker_service.service.AccountService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,12 @@ public class AccountController {
     ) {
         accountService.updateName(userId, accountId, accountName);
     }
+
+    @DeleteMapping("/{accountId}")
+    public void deleteAccount(@PathVariable String accountId, @RequestParam String userId){
+        accountService.deleteAccount(accountId,userId);
+    }
+
 
     @GetMapping
     public List<AccountDTO> getAccounts(@RequestParam String userId) {

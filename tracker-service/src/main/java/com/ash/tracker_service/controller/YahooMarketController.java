@@ -13,7 +13,7 @@ public class YahooMarketController {
     private final YahooMarketService yahooMarketService;
     private final TickerSearchService tickerSearchService;
 
-    // Single stock (quote + chart together)
+    
     @GetMapping("/chart/{isin}")
     public Object getChartAndQuote(
             @PathVariable String isin,

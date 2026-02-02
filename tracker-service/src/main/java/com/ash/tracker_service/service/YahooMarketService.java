@@ -35,7 +35,7 @@ public class YahooMarketService {
     }
 
     public Object getChartAndQuote(String symbol, String interval, String range) {
-        // Try NSE first (.NS)
+     
         try {
             String yahooSymbol = buildYahooSymbol(symbol, ".NS");
             String url = yahooBaseUrl +

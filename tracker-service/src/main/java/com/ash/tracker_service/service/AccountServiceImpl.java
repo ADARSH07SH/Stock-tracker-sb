@@ -44,6 +44,15 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public void deleteAccount(String accountId, String userId) {
+        if(accountId==null||userId==null)
+                throw new RuntimeException("Invalid parameters");
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        accountRepository.delete(account);
+    }
+
+    @Override
     public List<AccountDTO> getAccounts(String userId) {
 
         List<Account> accounts = accountRepository.findByUserId(userId);

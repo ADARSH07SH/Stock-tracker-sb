@@ -1,0 +1,45 @@
+name: Deploy Spring Boot Mono Repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'auth-service/**'
+      - 'tracker-service/**'
+      - 'docker-compose.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          script: |
+            cd ~/stock-platform
+            git pull
+
+            echo " Building changed services"
+
+            if git diff --name-only HEAD~1 | grep auth-service; then
+              echo " Deploying auth-service"
+              cd auth-service
+              mvn clean package -DskipTests
+              cd ..
+              docker compose build auth-service
+              docker compose up -d auth-service
+            fi
+
+            if git diff --name-only HEAD~1 | grep tracker-service; then
+              echo " Deploying tracker-service"
+              cd tracker-service
+              mvn clean package -DskipTests
+              cd ..
+              docker compose build tracker-service
+              docker compose up -d tracker-service
+            fi

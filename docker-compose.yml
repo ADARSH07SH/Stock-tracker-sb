@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "127.0.0.1:8081:8081"
+    restart: unless-stopped
+
+  tracker-service:
+    build: ./tracker-service
+    container_name: tracker-service
+    ports:
+      - "127.0.0.1:8082:8082"
+    restart: unless-stopped

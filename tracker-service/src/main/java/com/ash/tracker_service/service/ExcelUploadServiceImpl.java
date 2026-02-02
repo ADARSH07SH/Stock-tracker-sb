@@ -30,7 +30,7 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
 
         List<ExcelStockRowDTO> rows = ExcelParser.parse(file);
 
-        // Detect changes between current portfolio and new Excel data
+        
         ExcelUploadResponseDTO response = analyzeAndUpdate(portfolio, rows);
 
         portfolio.setUpdatedAt(Instant.now());
@@ -44,7 +44,6 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
 
     private ExcelUploadResponseDTO analyzeAndUpdate(UserPortfolio portfolio, List<ExcelStockRowDTO> newRows) {
         
-        // Create maps for easy lookup
         Map<String, StockHolding> currentStocksMap = portfolio.getStocks()
                 .stream()
                 .collect(Collectors.toMap(StockHolding::getIsin, s -> s));
@@ -59,22 +58,18 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
         int addedCount = 0;
         int updatedCount = 0;
         
-        // Process stocks from new Excel
         for (ExcelStockRowDTO newRow : newRows) {
             StockHolding existing = currentStocksMap.get(newRow.getIsin());
             
             if (existing == null) {
-                // New stock added
                 addedCount++;
             } else {
-                // Stock exists - check if quantity or price changed
                 if (!existing.getQuantity().equals(newRow.getQuantity()) || 
                     !existing.getAverageBuyPrice().equals(newRow.getAverageBuyPrice())) {
                     updatedCount++;
                 }
             }
             
-            // Add/update the stock
             updatedHoldings.add(
                 StockHolding.builder()
                         .stockName(newRow.getStockName())
@@ -87,7 +82,6 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
             );
         }
         
-        // Detect potentially sold stocks (in current portfolio but not in new Excel)
         for (StockHolding current : portfolio.getStocks()) {
             if (!newStocksMap.containsKey(current.getIsin())) {
                 detectedSoldStocks.add(
@@ -102,10 +96,8 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
             }
         }
         
-        // Update portfolio with new holdings
         portfolio.setStocks(updatedHoldings);
         
-        // Build response
         String message;
         if (detectedSoldStocks.isEmpty()) {
             message = "Portfolio updated successfully";

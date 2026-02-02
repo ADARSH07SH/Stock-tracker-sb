@@ -41,7 +41,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         for (StockHolding s : portfolio.getStocks()) {
             Double price = prices.get(s.getIsin());
             
-            // If price is not available, use average buy price as fallback
+          
             boolean priceUnavailable = false;
             if (price == null) {
                 System.out.println("WARNING: No market price available for " + s.getStockName() + " (" + s.getIsin() + "). Using buy price as fallback.");
@@ -71,7 +71,7 @@ public class PortfolioServiceImpl implements PortfolioService {
             );
         }
 
-        // Sort stocks by name
+       
         stockResponses.sort(Comparator.comparing(StockHoldingResponseDTO::getStockName));
 
         List<SoldStock> soldStocks = soldStockRepository
@@ -112,7 +112,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     @Override
     public void initPortfolio(String userId, String accountId) {
         
-        // Check if portfolio already exists
+        
         Optional<UserPortfolio> existing = userPortfolioRepository
                 .findByUserIdAndAccountId(userId, accountId);
         

@@ -10,6 +10,7 @@ public interface AccountService {
 
     void updateName(String userId, String accountId, String accountName);
 
+    void deleteAccount(String accountId, String userId);
 
     List<AccountDTO> getAccounts(String userId);
 }

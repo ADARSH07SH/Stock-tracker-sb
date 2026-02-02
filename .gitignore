@@ -62,3 +62,15 @@ ios/*.xcodeproj
 
 # ===== mobile-app folder =====
 mobile-app-v2
+
+# ========================
+# Markdown files
+# ========================
+*.md
+
+
+# ========================
+# !API_DOCUMENTATION.md 
+# ========================
+
+

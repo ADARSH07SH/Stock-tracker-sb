@@ -30,7 +30,7 @@ public class TickerSearchService {
     }
 
     public String getSymbolByIsin(String isin) {
-        // Try NSE first
+        
         Ticker ticker = tickerRepository
                 .findByIsinAndSource(isin, "NSE")
                 .orElse(null);
@@ -39,7 +39,7 @@ public class TickerSearchService {
             return ticker.getSymbol();
         }
         
-        // If NSE not found, try BSE
+       
         System.out.println("NSE ticker not found for ISIN: " + isin + ", trying BSE");
         ticker = tickerRepository
                 .findByIsinAndSource(isin, "BSE")

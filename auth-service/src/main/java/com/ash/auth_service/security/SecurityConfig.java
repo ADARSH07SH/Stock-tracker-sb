@@ -42,6 +42,9 @@ public class SecurityConfig {
                                 "/api/auth/google",
                                 "/api/auth/forgot-password/send-otp",
                                 "/api/auth/forgot-password/verify-otp",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
                                 "/health"
                         ).permitAll()
                         .anyRequest().authenticated()
