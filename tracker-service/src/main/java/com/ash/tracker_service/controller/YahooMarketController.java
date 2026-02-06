@@ -24,5 +24,14 @@ public class YahooMarketController {
         return yahooMarketService.getChartAndQuote(symbol, interval, range);
     }
 
+    @GetMapping("/index/{symbol}")
+    public Object getIndexChart(
 
+            @PathVariable String symbol,
+            @RequestParam(defaultValue = "1d") String interval,
+            @RequestParam(defaultValue = "1mo") String range) {
+
+        System.out.println(symbol);
+        return yahooMarketService.getIndexChartAndQuote(symbol, interval, range);
+    }
 }

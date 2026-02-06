@@ -18,6 +18,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final UserPortfolioRepository userPortfolioRepository;
     private final SoldStockRepository soldStockRepository;
     private final MarketPriceService marketPriceService;
+    private final MissingIsinService missingIsinService;
 
     @Override
     public PortfolioResponseDTO getPortfolio(String userId, String accountId) {
@@ -47,6 +48,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                 System.out.println("WARNING: No market price available for " + s.getStockName() + " (" + s.getIsin() + "). Using buy price as fallback.");
                 price = s.getAverageBuyPrice();
                 priceUnavailable = true;
+                missingIsinService.recordMissingIsin(s.getIsin(), s.getStockName());
             }
             
             double currentValue = price * s.getQuantity();

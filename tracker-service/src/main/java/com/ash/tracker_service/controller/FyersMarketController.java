@@ -16,6 +16,7 @@ public class FyersMarketController {
     @GetMapping("/quote/{isin}")
     public Object getQuote(@PathVariable String isin) {
         String symbol = tickerSearchService.getSymbolByIsin(isin);
+        System.out.println(symbol);
         return fyersMarketService.getQuote(symbol);
     }
 

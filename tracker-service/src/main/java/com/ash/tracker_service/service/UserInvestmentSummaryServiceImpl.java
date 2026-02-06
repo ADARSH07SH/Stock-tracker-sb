@@ -19,6 +19,7 @@ public class UserInvestmentSummaryServiceImpl implements UserInvestmentSummarySe
     private final UserPortfolioRepository userPortfolioRepository;
     private final SoldStockRepository soldStockRepository;
     private final MarketPriceService marketPriceService;
+    private final MissingIsinService missingIsinService;
 
     @Override
     public UserInvestmentSummaryDTO getSummary(String userId) {
@@ -39,7 +40,13 @@ public class UserInvestmentSummaryServiceImpl implements UserInvestmentSummarySe
                 );
 
                 for (StockHolding s : p.getStocks()) {
-                    double current = prices.get(s.getIsin()) * s.getQuantity();
+                    Double price = prices.get(s.getIsin());
+                    if (price == null) {
+                        System.out.println("WARNING: No market price for " + s.getStockName() + " (" + s.getIsin() + ") in summary. Using buy price.");
+                        price = s.getAverageBuyPrice();
+                        missingIsinService.recordMissingIsin(s.getIsin(), s.getStockName());
+                    }
+                    double current = price * s.getQuantity();
                     totalCurrentValue += current;
                     stocksValue += current;
                 }

@@ -10,11 +10,9 @@ import com.ash.auth_service.exception.UserAlreadyExistsException;
 import com.ash.auth_service.repository.ForgotPasswordOtpRepository;
 import com.ash.auth_service.repository.RefreshTokenRepository;
 import com.ash.auth_service.repository.UserRepository;
-import com.ash.auth_service.security.GoogleTokenVerifier;
 import com.ash.auth_service.security.JwtUtil;
 import com.ash.auth_service.util.OtpUtil;
 import com.ash.auth_service.util.UserIdGenerator;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,7 +29,7 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final ForgotPasswordOtpRepository forgotPasswordOtpRepository;
-    private final GoogleTokenVerifier googleTokenVerifier;
+    private final com.ash.auth_service.security.FirebaseTokenVerifier firebaseTokenVerifier;
     private final RefreshTokenRepository refreshTokenRepository;
 
     private static final long ACCESS_TOKEN_EXPIRE_SECONDS = 86400000;
@@ -39,7 +37,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public AuthResponseDTO register(AuthRequestDTO request) {
-
         if ((request.getEmail() == null || request.getEmail().isEmpty()) &&
                 (request.getPhoneNumber() == null || request.getPhoneNumber().isEmpty())) {
             throw new InvalidRequestException("Either email or phone number must be provided");
@@ -66,6 +63,7 @@ public class UserServiceImpl implements UserService {
         user.setUserId(UserIdGenerator.generateUserId(request.getEmail(), request.getPhoneNumber()));
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setProvider("PASSWORD");
         user.setRoles(Set.of(User.Role.ROLE_USER));
         user.setStatus(User.UserStatus.ACTIVE);
         user.setIsTwoFactorEnabled(false);
@@ -98,7 +96,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public AuthResponseDTO login(AuthRequestDTO request) {
-
         if ((request.getEmail() == null || request.getEmail().isEmpty()) &&
                 (request.getPhoneNumber() == null || request.getPhoneNumber().isEmpty())) {
             throw new InvalidRequestException("Either email or phone number must be provided");
@@ -155,62 +152,83 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public AuthResponseDTO googleLogin(GoogleAuthRequestDTO request) {
+        try {
+            System.out.println("🔵 Starting Firebase token verification...");
 
-        GoogleIdToken.Payload payload =
-                googleTokenVerifier.verify(request.getIdToken());
+            if (request.getIdToken() == null || request.getIdToken().isEmpty()) {
+                throw new InvalidRequestException("ID token is required");
+            }
 
-        String email = payload.getEmail();
+            com.ash.auth_service.security.FirebaseTokenVerifier.FirebaseTokenPayload payload = 
+                    firebaseTokenVerifier.verify(request.getIdToken());
 
-        User user = userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    User newUser = new User();
-                    newUser.setUserId(UserIdGenerator.generateUserId(email, null));
-                    newUser.setEmail(email);
-                    newUser.setProvider("GOOGLE");
-                    newUser.setRoles(Set.of(User.Role.ROLE_USER));
-                    newUser.setStatus(User.UserStatus.ACTIVE);
-                    newUser.setCreatedAt(Instant.now());
-                    return userRepository.save(newUser);
-                });
+            if (payload == null || payload.getEmail() == null) {
+                throw new InvalidRequestException("Invalid Firebase ID token");
+            }
 
-        if (user.getProvider() == null) {
-            user.setProvider("PASSWORD,GOOGLE");
+            String email = payload.getEmail();
+            System.out.println("✅ Token verified for email: " + email);
+
+            User user = userRepository.findByEmail(email)
+                    .orElseGet(() -> {
+                        System.out.println("📝 Creating new user for: " + email);
+                        User newUser = new User();
+                        newUser.setUserId(UserIdGenerator.generateUserId(email, null));
+                        newUser.setEmail(email);
+                        newUser.setProvider("GOOGLE");
+                        newUser.setRoles(Set.of(User.Role.ROLE_USER));
+                        newUser.setStatus(User.UserStatus.ACTIVE);
+                        newUser.setIsTwoFactorEnabled(false);
+                        newUser.setCreatedAt(Instant.now());
+                        return userRepository.save(newUser);
+                    });
+
+            if (user.getProvider() == null || user.getProvider().isEmpty()) {
+                user.setProvider("GOOGLE");
+                userRepository.save(user);
+            } else if (!user.getProvider().contains("GOOGLE")) {
+                user.setProvider(user.getProvider() + ",GOOGLE");
+                userRepository.save(user);
+            }
+
+            user.setLastLogin(Instant.now());
             userRepository.save(user);
-        } else if (!user.getProvider().contains("GOOGLE")) {
-            user.setProvider(user.getProvider() + ",GOOGLE");
-            userRepository.save(user);
+
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("roles", user.getRoles());
+            claims.put("email", user.getEmail());
+
+            String accessToken = jwtUtil.generateAccessToken(claims, user.getUserId());
+            String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
+
+            refreshTokenRepository.save(
+                    RefreshToken.builder()
+                            .userId(user.getUserId())
+                            .token(refreshToken)
+                            .expiryTime(Instant.now().plusSeconds(REFRESH_TOKEN_EXPIRE_SECONDS))
+                            .revoked(false)
+                            .build()
+            );
+
+            System.out.println("✅ Google login completed successfully");
+
+            return AuthResponseDTO.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .userId(user.getUserId())
+                    .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
+                    .build();
+
+        } catch (Exception e) {
+            System.err.println("❌ Google login error: " + e.getMessage());
+            e.printStackTrace();
+            throw new InvalidRequestException("Google authentication failed: " + e.getMessage());
         }
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", user.getRoles());
-        claims.put("email", user.getEmail());
-
-        String accessToken = jwtUtil.generateAccessToken(claims, user.getUserId());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
-
-        refreshTokenRepository.save(
-                RefreshToken.builder()
-                        .userId(user.getUserId())
-                        .token(refreshToken)
-                        .expiryTime(
-                                Instant.now().plusSeconds(REFRESH_TOKEN_EXPIRE_SECONDS)
-                        )
-                        .revoked(false)
-                        .build()
-        );
-
-        return AuthResponseDTO.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .userId(user.getUserId())
-                .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
-                .build();
     }
 
     @Override
     public AuthResponseDTO refreshToken(RefreshTokenRequestDTO request) {
-
-        RefreshToken storedToken=refreshTokenRepository
+        RefreshToken storedToken = refreshTokenRepository
                 .findByTokenAndRevokedFalse(request.getRefreshToken())
                 .orElseThrow(() -> new InvalidRequestException("Invalid refresh token"));
 
@@ -218,10 +236,10 @@ public class UserServiceImpl implements UserService {
             throw new RefreshTokenExpiredException();
         }
 
+        String userId = storedToken.getUserId();
 
-        String userId=storedToken.getUserId();
-
-        User user=userRepository.findByUserId(userId).orElseThrow(() -> new InvalidRequestException("Invalid user ID"));
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new InvalidRequestException("Invalid user ID"));
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("roles", user.getRoles());
@@ -239,18 +257,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void sendForgotPasswordOTP(ForgotPasswordOtpRequestDTO request) {
+        Optional<ForgotPasswordOtp> activeOtp = forgotPasswordOtpRepository
+                .findFirstByEmailOrderByExpiryTimeDesc(request.getEmail());
 
-
-        Optional<ForgotPasswordOtp>activeOtp=forgotPasswordOtpRepository.findFirstByEmailOrderByExpiryTimeDesc(request.getEmail());
-
-        if(activeOtp.isPresent()) {
-            ForgotPasswordOtp otp=activeOtp.get();
-            if(otp.getExpiryTime().isAfter(Instant.now())) {
-                long waitSecond=otp.getExpiryTime().getEpochSecond()-Instant.now().getEpochSecond();
-
-                throw new InvalidRequestException("Please wait "+(waitSecond/60+1)+ " minutes before requesting a new OTP");
+        if (activeOtp.isPresent()) {
+            ForgotPasswordOtp otp = activeOtp.get();
+            if (otp.getExpiryTime().isAfter(Instant.now())) {
+                long waitSecond = otp.getExpiryTime().getEpochSecond() - Instant.now().getEpochSecond();
+                throw new InvalidRequestException("Please wait " + (waitSecond / 60 + 1) + " minutes before requesting a new OTP");
             }
         }
+
         if (request.getEmail() == null || request.getEmail().isEmpty()) {
             throw new InvalidRequestException("Email must be provided");
         }
@@ -268,13 +285,11 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         forgotPasswordOtpRepository.save(otpEntity);
-
         emailService.sendForgotPasswordOtp(request.getEmail(), otp);
     }
 
     @Override
     public void verifyOtpAndResetPassword(ResetPasswordRequestDTO request) {
-
         if (request.getEmail() == null || request.getEmail().isEmpty() ||
                 request.getOtp() == null || request.getOtp().isEmpty() ||
                 request.getNewPassword() == null || request.getNewPassword().isEmpty()) {

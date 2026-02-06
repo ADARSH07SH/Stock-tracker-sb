@@ -2,6 +2,7 @@ package com.ash.tracker_service.service;
 
 import com.ash.tracker_service.entity.MarketPrice;
 import com.ash.tracker_service.repository.MarketPriceRepository;
+import com.ash.tracker_service.repository.MissingIsinRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ public class ExternalPriceClientImpl implements ExternalPriceClient {
     private final MarketPriceRepository marketPriceRepository;
     private final YahooMarketService yahooMarketService;
     private final TickerSearchService tickerSearchService;
+    private final MissingIsinRepository missingIsinRepository;
 
     private static final long TTL_SECONDS = 600;
 
@@ -43,7 +45,16 @@ public class ExternalPriceClientImpl implements ExternalPriceClient {
                     continue;
                 }
 
-                String symbol = tickerSearchService.getSymbolByIsin(isin);
+                String symbol = null;
+                
+                var missingIsin = missingIsinRepository.findByIsin(isin);
+                if (missingIsin.isPresent() && missingIsin.get().getSymbol() != null && !missingIsin.get().getSymbol().isEmpty()) {
+                    symbol = missingIsin.get().getSymbol();
+                    System.out.println("Using symbol from missing_isins: " + symbol + " for ISIN: " + isin);
+                } else {
+                    symbol = tickerSearchService.getSymbolByIsin(isin);
+                }
+                
                 double livePrice = yahooMarketService.getCurrentPrice(symbol);
 
                 prices.put(isin, livePrice);

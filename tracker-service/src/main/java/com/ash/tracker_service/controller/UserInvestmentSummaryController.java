@@ -17,6 +17,7 @@ public class UserInvestmentSummaryController {
 
     @GetMapping
     public UserInvestmentSummaryDTO getSummary(@RequestParam String userId) {
+        System.out.println(userId);
         return summaryService.getSummary(userId);
     }
 }

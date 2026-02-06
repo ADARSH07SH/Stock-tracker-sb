@@ -94,4 +94,28 @@ public class YahooMarketService {
 
         return ((Number) price).doubleValue();
     }
+
+    public Object getIndexChartAndQuote(String symbol, String interval, String range) {
+        try {
+            String yahooSymbol = symbol.startsWith("^") ? symbol : "^" + symbol;
+            String url = yahooBaseUrl +
+                    "/v8/finance/chart/" + yahooSymbol +
+                    "?interval=" + interval +
+                    "&range=" + range;
+
+            System.out.println("Fetching index data for: " + yahooSymbol);
+            System.out.println("URL: " + url);
+
+            return restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    buildEntity(),
+                    Object.class
+            ).getBody();
+        } catch (Exception e) {
+            System.err.println("Error fetching index data: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to fetch index data for " + symbol, e);
+        }
+    }
 }
