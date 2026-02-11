@@ -26,6 +26,9 @@ public class GoogleTokenVerifier {
         verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                 .setAudience(Collections.singletonList(androidClientId))
                 .build();
+        System.out.println(" Google Token Verifier initialized");
+        System.out.println("   Web Client ID: " + webClientId);
+        System.out.println("   Android Client ID: " + androidClientId);
     }
 
     public GoogleTokenPayload verify(String idTokenString) {
@@ -33,6 +36,9 @@ public class GoogleTokenVerifier {
             if (idTokenString == null || idTokenString.isEmpty()) {
                 throw new RuntimeException("ID token is null or empty");
             }
+
+            System.out.println("🔵 Verifying Google ID token...");
+            System.out.println("   Token length: " + idTokenString.length());
 
             GoogleIdToken idToken = verifier.verify(idTokenString);
             
@@ -48,9 +54,17 @@ public class GoogleTokenVerifier {
             String pictureUrl = (String) payload.get("picture");
             Boolean emailVerified = payload.getEmailVerified();
 
+            System.out.println("✅ Token verified successfully");
+            System.out.println("   Email: " + email);
+            System.out.println("   User ID: " + userId);
+            System.out.println("   Name: " + name);
+            System.out.println("   Email Verified: " + emailVerified);
+
             return new GoogleTokenPayload(email, userId, name, pictureUrl, emailVerified);
 
         } catch (Exception e) {
+            System.err.println(" Token verification failed: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Failed to verify Google ID token: " + e.getMessage(), e);
         }
     }

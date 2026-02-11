@@ -19,11 +19,11 @@ public class FirebaseConfig {
             if (FirebaseApp.getApps().isEmpty()) {
                 InputStream serviceAccount = null;
                 
-                // trying to load form the opt secrext ec2
+                
                 try {
                     serviceAccount = new FileInputStream("/opt/secrets/firebase-service-account.json");
                 } catch (Exception e) {
-                    // If not found, tryong the class path local)
+                    
                     try {
                         serviceAccount = new ClassPathResource("firebase-service-account.json").getInputStream();
                         System.out.println(" Loaded Firebase config from classpath");
@@ -38,7 +38,40 @@ public class FirebaseConfig {
                         .build();
 
                 FirebaseApp.initializeApp(options);
+            }package com.ash.auth_service.config;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import jakarta.annotation.PostConstruct;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class FirebaseConfig {
+
+    @PostConstruct
+    public void initialize() {
+        try {
+            if (FirebaseApp.getApps().isEmpty()) {
+
+                FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(GoogleCredentials.getApplicationDefault())
+                        .build();
+
+                FirebaseApp.initializeApp(options);
+
+                System.out.println("Firebase Admin initialized successfully");
             }
+        } catch (Exception e) {
+            System.err.println("Firebase initialization failed");
+            e.printStackTrace();
+
+       
+            throw new RuntimeException("Firebase init failed", e);
+        }
+    }
+}
+
         } catch (Exception e) {
             System.err.println(" Failed to initialize Firebase Admin SDK: " + e.getMessage());
             throw new RuntimeException("Failed to initialize Firebase Admin SDK", e);
