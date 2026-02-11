@@ -22,10 +22,12 @@ public class YahooMarketService {
 
     private HttpEntity<Void> buildEntity() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(
-                "User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
-        );
+        headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        headers.set("Accept", "application/json, text/plain, */*");
+        headers.set("Accept-Language", "en-US,en;q=0.9");
+        headers.set("Accept-Encoding", "gzip, deflate, br");
+        headers.set("Referer", "https://finance.yahoo.com/");
+        headers.set("Origin", "https://finance.yahoo.com");
         return new HttpEntity<>(headers);
     }
 
@@ -39,7 +41,7 @@ public class YahooMarketService {
         try {
             String yahooSymbol = buildYahooSymbol(symbol, ".NS");
             String url = yahooBaseUrl +
-                    "/v8/finance/chart/" + yahooSymbol +
+                    "v8/finance/chart/" + yahooSymbol +
                     "?interval=" + interval +
                     "&range=" + range;
 
@@ -54,7 +56,7 @@ public class YahooMarketService {
             System.out.println("NSE failed for " + symbol + ", trying BSE");
             String yahooSymbol = buildYahooSymbol(symbol, ".BO");
             String url = yahooBaseUrl +
-                    "/v8/finance/chart/" + yahooSymbol +
+                    "v8/finance/chart/" + yahooSymbol +
                     "?interval=" + interval +
                     "&range=" + range;
 
@@ -99,7 +101,7 @@ public class YahooMarketService {
         try {
             String yahooSymbol = symbol.startsWith("^") ? symbol : "^" + symbol;
             String url = yahooBaseUrl +
-                    "/v8/finance/chart/" + yahooSymbol +
+                    "v8/finance/chart/" + yahooSymbol +
                     "?interval=" + interval +
                     "&range=" + range;
 

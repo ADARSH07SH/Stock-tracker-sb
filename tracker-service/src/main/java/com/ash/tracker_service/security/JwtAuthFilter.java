@@ -46,13 +46,41 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             String userId = claims.getSubject();
             String email = claims.get("email", String.class);
+            
+            // Handle roles as a collection (Set/List from JWT)
+            Object rolesObj = claims.get("roles");
+            java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
+            
+            if (rolesObj instanceof java.util.Collection) {
+                for (Object roleObj : (java.util.Collection<?>) rolesObj) {
+                    final String roleStr = roleObj.toString();
+                    // Roles already have ROLE_ prefix from auth-service
+                    authorities.add(() -> roleStr);
+                }
+            } else if (rolesObj instanceof String) {
+                final String roleStr = (String) rolesObj;
+                authorities.add(() -> roleStr);
+            }
+            
+            // Fallback to single role claim for backward compatibility
+            if (authorities.isEmpty()) {
+                String role = claims.get("role", String.class);
+                if (role != null) {
+                    // Add ROLE_ prefix if not present
+                    if (!role.startsWith("ROLE_")) {
+                        role = "ROLE_" + role;
+                    }
+                    final String finalRole = role;
+                    authorities.add(() -> finalRole);
+                }
+            }
 
             request.setAttribute("userId", userId);
             request.setAttribute("email", email);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            userId, null, Collections.emptyList()
+                            userId, null, authorities
                     );
 
             authentication.setDetails(

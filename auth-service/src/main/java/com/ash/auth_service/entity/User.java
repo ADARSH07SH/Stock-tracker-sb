@@ -30,6 +30,7 @@ public class User {
     private UserStatus status;
 
     private Boolean isTwoFactorEnabled;
+    private Boolean emailVerified;
 
     private Instant createdAt;
     private Instant updatedAt;

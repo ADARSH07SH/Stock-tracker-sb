@@ -11,7 +11,6 @@ public class FirebaseTokenVerifier {
 
     @PostConstruct
     public void init() {
-        System.out.println(" Firebase Token Verifier initialized");
     }
 
     public FirebaseTokenPayload verify(String idTokenString) {
@@ -20,15 +19,7 @@ public class FirebaseTokenVerifier {
                 throw new RuntimeException("ID token is null or empty");
             }
 
-            System.out.println(" Verifying Firebase ID token...");
-            System.out.println(" Token length: " + idTokenString.length());
-
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idTokenString);
-
-            System.out.println(" Token verified successfully");
-            System.out.println(" email: " + decodedToken.getEmail());
-            System.out.println(" UID: " + decodedToken.getUid());
-            System.out.println(" Name: " + decodedToken.getName());
 
             return new FirebaseTokenPayload(
                     decodedToken.getEmail(),
@@ -37,8 +28,6 @@ public class FirebaseTokenVerifier {
                     decodedToken.getPicture()
             );
         } catch (Exception e) {
-            System.err.println(" Token verification failed: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to verify Firebase ID token: " + e.getMessage(), e);
         }
     }

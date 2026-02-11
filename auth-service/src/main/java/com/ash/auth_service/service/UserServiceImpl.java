@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final ForgotPasswordOtpRepository forgotPasswordOtpRepository;
-    private final com.ash.auth_service.security.FirebaseTokenVerifier firebaseTokenVerifier;
+    private final com.ash.auth_service.security.GoogleTokenVerifier googleTokenVerifier;
     private final RefreshTokenRepository refreshTokenRepository;
 
     private static final long ACCESS_TOKEN_EXPIRE_SECONDS = 86400000;
@@ -67,12 +67,23 @@ public class UserServiceImpl implements UserService {
         user.setRoles(Set.of(User.Role.ROLE_USER));
         user.setStatus(User.UserStatus.ACTIVE);
         user.setIsTwoFactorEnabled(false);
+        user.setEmailVerified(false);
         user.setCreatedAt(Instant.now());
         userRepository.save(user);
+
+        // Send verification email soft method
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), user.getEmail());
+            System.out.println(" Verification email sent to: " + user.getEmail());
+        } catch (Exception e) {
+            System.err.println(" Failed to send verification email: " + e.getMessage());
+            // lets see afte r
+        }
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("roles", user.getRoles());
         claims.put("email", user.getEmail());
+
 
         String accessToken = jwtUtil.generateAccessToken(claims, user.getUserId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
@@ -115,12 +126,18 @@ public class UserServiceImpl implements UserService {
                     .orElseThrow(() -> new InvalidRequestException("Invalid phone number or password"));
         }
 
+        // Check if user registered with Google and has no password
+        if (user.getProvider() != null && user.getProvider().contains("GOOGLE") && 
+            (user.getPassword() == null || user.getPassword().isEmpty())) {
+            throw new InvalidRequestException("This email is registered using Google. Please sign in with Google or set a password first.");
+        }
+
         if (user.getStatus() != User.UserStatus.ACTIVE) {
             throw new InvalidRequestException("User account is not active: " + user.getStatus());
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new InvalidRequestException("Passwords don't match");
+            throw new InvalidRequestException("Invalid email or password");
         }
 
         user.setLastLogin(Instant.now());
@@ -153,25 +170,25 @@ public class UserServiceImpl implements UserService {
     @Override
     public AuthResponseDTO googleLogin(GoogleAuthRequestDTO request) {
         try {
-            System.out.println("🔵 Starting Firebase token verification...");
+            System.out.println(" Starting Google token verification...");
 
             if (request.getIdToken() == null || request.getIdToken().isEmpty()) {
                 throw new InvalidRequestException("ID token is required");
             }
 
-            com.ash.auth_service.security.FirebaseTokenVerifier.FirebaseTokenPayload payload = 
-                    firebaseTokenVerifier.verify(request.getIdToken());
+            com.ash.auth_service.security.GoogleTokenVerifier.GoogleTokenPayload payload = 
+                    googleTokenVerifier.verify(request.getIdToken());
 
             if (payload == null || payload.getEmail() == null) {
-                throw new InvalidRequestException("Invalid Firebase ID token");
+                throw new InvalidRequestException("Invalid Google ID token");
             }
 
             String email = payload.getEmail();
-            System.out.println("✅ Token verified for email: " + email);
+            System.out.println(" Token verified for email: " + email);
 
             User user = userRepository.findByEmail(email)
                     .orElseGet(() -> {
-                        System.out.println("📝 Creating new user for: " + email);
+                        System.out.println(" Creating new user for: " + email);
                         User newUser = new User();
                         newUser.setUserId(UserIdGenerator.generateUserId(email, null));
                         newUser.setEmail(email);
@@ -179,6 +196,7 @@ public class UserServiceImpl implements UserService {
                         newUser.setRoles(Set.of(User.Role.ROLE_USER));
                         newUser.setStatus(User.UserStatus.ACTIVE);
                         newUser.setIsTwoFactorEnabled(false);
+                        newUser.setEmailVerified(true); // Google verifies emails
                         newUser.setCreatedAt(Instant.now());
                         return userRepository.save(newUser);
                     });
@@ -210,7 +228,7 @@ public class UserServiceImpl implements UserService {
                             .build()
             );
 
-            System.out.println("✅ Google login completed successfully");
+            System.out.println(" Google login completed successfully");
 
             return AuthResponseDTO.builder()
                     .accessToken(accessToken)
@@ -220,7 +238,7 @@ public class UserServiceImpl implements UserService {
                     .build();
 
         } catch (Exception e) {
-            System.err.println("❌ Google login error: " + e.getMessage());
+            System.err.println(" Google login error: " + e.getMessage());
             e.printStackTrace();
             throw new InvalidRequestException("Google authentication failed: " + e.getMessage());
         }

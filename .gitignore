@@ -76,3 +76,5 @@ mobile-app-v2
 
 # Firebase / Google secrets
 auth-service/src/main/resources/firebase-service-account.json
+
+stock-tracker-web

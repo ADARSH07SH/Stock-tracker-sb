@@ -5,17 +5,16 @@ services:
     build: ./auth-service
     container_name: auth-service
     ports:
-      - "127.0.0.1:8081:8081"
+      - "8081:8081"
     volumes:
-      - /opt/secrets/firebase-service-account.json:/opt/secrets/firebase-service-account.json:ro
+      - ./auth-service/src/main/resources/firebase-service-account.json:/opt/secrets/firebase-service-account.json:ro
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /opt/secrets/firebase-service-account.json
     restart: unless-stopped
-
 
   tracker-service:
     build: ./tracker-service
     container_name: tracker-service
     ports:
-      - "127.0.0.1:8082:8082"
+      - "8082:8082"
     restart: unless-stopped

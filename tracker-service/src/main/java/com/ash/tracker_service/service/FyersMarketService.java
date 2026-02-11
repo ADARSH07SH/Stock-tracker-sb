@@ -44,7 +44,7 @@ public class FyersMarketService {
         if (upper.startsWith("NSE:")) {
             return upper + "-EQ";
         }
-        return "NSE:" + upper + "-EQ";
+        return  upper ;
     }
 
     public Object getQuote(String symbol) {

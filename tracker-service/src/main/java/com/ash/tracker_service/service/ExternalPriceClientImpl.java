@@ -67,7 +67,7 @@ public class ExternalPriceClientImpl implements ExternalPriceClient {
                                 .build()
                 );
             } catch (Exception e) {
-                System.err.println("WARNING: Failed to fetch price for ISIN: " + isin + " - " + e.getMessage());
+                System.err.println(" Failed to fetch price for ISIN: " + isin + " - " + e.getMessage());
                
             }
         }
