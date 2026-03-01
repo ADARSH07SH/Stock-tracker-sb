@@ -5,36 +5,70 @@
 .vscode/
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
 
 # ========================
 # ENV / Secrets
 # ========================
 .env
 .env.*
+!.env.example
 *.keystore
 *.jks
+*.pem
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Service Configuration Files (contain sensitive data)
+**/application.yaml
+**/application.yml
+**/application.properties
+**/.env
+!**/.env.example
 
 # ========================
-# Node / Expo / Web
+# Deployment Secrets & Scripts
+# ========================
+deploy.sh
+upload-secrets.sh
+deployment/
+deployment/**/*.json
+deployment/**/*.yaml
+deployment/**/*.yml
+
+# ========================
+# Node / NPM / Yarn
 # ========================
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 yarn.lock
 pnpm-lock.yaml
+package-lock.json
 
+# ========================
+# Expo / React Native
+# ========================
 .expo/
 .expo-shared/
 web-build/
 dist/
 build/
 
-# ========================
-# React Native / Expo
-# ========================
+# Android
 android/build/
 android/.gradle/
 android/app/build/
+android/local.properties
+*.apk
+*.aab
 
+# iOS
 ios/Pods/
 ios/build/
 ios/*.xcworkspace
@@ -47,34 +81,71 @@ ios/*.xcodeproj
 **/.classpath
 **/.project
 **/.settings/
+**/.mvn/
+mvnw
+mvnw.cmd
 
 # ========================
-# Logs
+# Python
 # ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+*.egg-info/
+.pytest_cache/
 *.log
 
 # ========================
-# Git
+# Logs & Debug
 # ========================
-*.orig
-**/application.yaml
-**/application.yml
+*.log
+debug.log
+logs/
+*.pid
+*.seed
+*.pid.lock
 
-# ===== mobile-app folder =====
-mobile-app-v2
-
 # ========================
-# Markdown files
+# Documentation (except README)
 # ========================
+docs/
 *.md
-
+!README.md
+!deployment/README.md
 
 # ========================
-# !API_DOCUMENTATION.md 
+# Google / OAuth Secrets
 # ========================
+**/google-credentials.json
+**/service-account.json
 
+# ========================
+# Database
+# ========================
+*.sqlite
+*.db
 
-# Firebase / Google secrets
-auth-service/src/main/resources/firebase-service-account.json
+# ========================
+# Temporary Files
+# ========================
+*.tmp
+*.temp
+*.bak
+*.orig
+.cache/
 
-stock-tracker-web
+# ========================
+# Old Versions
+# ========================
+mobile-app-v2/
+stock-tracker-web/
+
+# ========================
+# Mobile App (Private)
+# ========================
+mobile-app-v3/

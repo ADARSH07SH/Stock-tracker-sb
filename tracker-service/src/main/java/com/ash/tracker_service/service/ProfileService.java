@@ -10,4 +10,9 @@ public interface ProfileService {
     void initProfile(String userID,String email);
 
     ProfileResponseDTO updateProfile(String userId, ProfileUpdateRequestDTO profileUpdateRequestDTO);
+
+    void syncGoogleProfile(String userId, String email, String name, String profileImageUrl);
+    
+    String uploadProfileImage(String userId, org.springframework.web.multipart.MultipartFile file) throws java.io.IOException;
 }
+

@@ -1,20 +1,69 @@
-version: "3.8"
+version: '3.8'
 
 services:
   auth-service:
     build: ./auth-service
     container_name: auth-service
-    ports:
-      - "8081:8081"
-    volumes:
-      - ./auth-service/src/main/resources/firebase-service-account.json:/opt/secrets/firebase-service-account.json:ro
-    environment:
-      GOOGLE_APPLICATION_CREDENTIALS: /opt/secrets/firebase-service-account.json
+    expose:
+      - "8081"
+    networks:
+      - stock-tracker-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   tracker-service:
     build: ./tracker-service
     container_name: tracker-service
-    ports:
-      - "8082:8082"
+    expose:
+      - "8082"
+    networks:
+      - stock-tracker-network
     restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  ai-service:
+    build: ./ai-service
+    container_name: ai-service
+    expose:
+      - "8084"
+    networks:
+      - stock-tracker-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8084/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  sheetnews-service:
+    build: ./SheetNews
+    container_name: sheetnews-service
+    expose:
+      - "3005"
+    networks:
+      - stock-tracker-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  stock-tracker-network:
+    driver: bridge

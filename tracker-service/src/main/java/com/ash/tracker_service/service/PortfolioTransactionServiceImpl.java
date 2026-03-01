@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -117,5 +118,15 @@ public class PortfolioTransactionServiceImpl implements PortfolioTransactionServ
                         .mapToDouble(StockHolding::getBuyValue)
                         .sum()
         );
+    }
+    
+    @Override
+    public List<SoldStock> getUserSoldStocks(String userId) {
+        return soldStockRepository.findByUserId(userId);
+    }
+    
+    @Override
+    public List<SoldStock> getAccountSoldStocks(String userId, String accountId) {
+        return soldStockRepository.findByUserIdAndAccountId(userId, accountId);
     }
 }

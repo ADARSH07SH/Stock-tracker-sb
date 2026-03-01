@@ -52,7 +52,7 @@ public class YahooMarketService {
                     Object.class
             ).getBody();
         } catch (Exception e) {
-            // If NSE fails, try BSE (.BS)
+
             System.out.println("NSE failed for " + symbol + ", trying BSE");
             String yahooSymbol = buildYahooSymbol(symbol, ".BO");
             String url = yahooBaseUrl +

@@ -31,7 +31,7 @@ public class UserInvestmentSummaryServiceImpl implements UserInvestmentSummarySe
         double totalCurrentValue = 0;
         double stocksValue = 0;
 
-        for (UserPortfolio p : portfolios.orElse(null)) {
+        for (UserPortfolio p : portfolios.orElse(java.util.Collections.emptyList())) {
             totalInvestment += p.getTotalInvestment();
 
             if (p.getStocks() != null && !p.getStocks().isEmpty()) {

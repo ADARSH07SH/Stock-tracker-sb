@@ -22,13 +22,30 @@ public class PortfolioServiceImpl implements PortfolioService {
 
     @Override
     public PortfolioResponseDTO getPortfolio(String userId, String accountId) {
-
         UserPortfolio portfolio = userPortfolioRepository
                 .findByUserIdAndAccountId(userId, accountId)
                 .orElseThrow(() -> new RuntimeException("Portfolio not found for account: " + accountId));
 
-        List<String> isins = portfolio.getStocks()
-                .stream()
+        return convertToResponseDTO(portfolio);
+    }
+
+    @Override
+    public List<PortfolioResponseDTO> getAllPortfolios(String userId) {
+        List<UserPortfolio> portfolios = userPortfolioRepository.findByUserId(userId)
+                .orElse(Collections.emptyList());
+
+        return portfolios.stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    private PortfolioResponseDTO convertToResponseDTO(UserPortfolio portfolio) {
+        String userId = portfolio.getUserId();
+        String accountId = portfolio.getAccountId();
+
+        List<StockHolding> stocks = portfolio.getStocks() != null ? portfolio.getStocks() : Collections.emptyList();
+
+        List<String> isins = stocks.stream()
                 .map(StockHolding::getIsin)
                 .collect(Collectors.toList());
 
@@ -39,10 +56,9 @@ public class PortfolioServiceImpl implements PortfolioService {
         double totalCurrentValue = 0;
         double totalUnrealisedPL = 0;
 
-        for (StockHolding s : portfolio.getStocks()) {
+        for (StockHolding s : stocks) {
             Double price = prices.get(s.getIsin());
             
-          
             boolean priceUnavailable = false;
             if (price == null) {
                 System.out.println("WARNING: No market price available for " + s.getStockName() + " (" + s.getIsin() + "). Using buy price as fallback.");
@@ -73,7 +89,6 @@ public class PortfolioServiceImpl implements PortfolioService {
             );
         }
 
-       
         stockResponses.sort(Comparator.comparing(StockHoldingResponseDTO::getStockName));
 
         List<SoldStock> soldStocks = soldStockRepository

@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.6
@@ -18,10 +18,13 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_SSH_PORT }}
           command_timeout: 50m
-
           script: |
-            cd ~/stock-platform
-            git pull
-
-            echo "Building & deploying services"
+            cd ~/Stock-tracker-sb 
+            git pull origin main
+            echo "Stopping old containers..."
+            docker compose down
+            echo "Building & deploying services..."
             docker compose up -d --build
+            echo "Cleaning up..."
+            docker image prune -f
+            echo "Deployment complete!"

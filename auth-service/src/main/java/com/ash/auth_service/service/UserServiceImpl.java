@@ -31,6 +31,10 @@ public class UserServiceImpl implements UserService {
     private final ForgotPasswordOtpRepository forgotPasswordOtpRepository;
     private final com.ash.auth_service.security.GoogleTokenVerifier googleTokenVerifier;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CloudinaryService cloudinaryService;
+    
+    @org.springframework.beans.factory.annotation.Value("${tracker.service.url}")
+    private String trackerServiceUrl;
 
     private static final long ACCESS_TOKEN_EXPIRE_SECONDS = 86400000;
     private static final long REFRESH_TOKEN_EXPIRE_SECONDS = 30L * 24 * 60 * 60;
@@ -71,13 +75,12 @@ public class UserServiceImpl implements UserService {
         user.setCreatedAt(Instant.now());
         userRepository.save(user);
 
-        // Send verification email soft method
+
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getEmail());
             System.out.println(" Verification email sent to: " + user.getEmail());
         } catch (Exception e) {
             System.err.println(" Failed to send verification email: " + e.getMessage());
-            // lets see afte r
         }
 
         Map<String, Object> claims = new HashMap<>();
@@ -101,6 +104,8 @@ public class UserServiceImpl implements UserService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(user.getUserId())
+                .name(user.getName())
+                .profileImageUrl(user.getProfileImageUrl())
                 .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
                 .build();
     }
@@ -126,7 +131,7 @@ public class UserServiceImpl implements UserService {
                     .orElseThrow(() -> new InvalidRequestException("Invalid phone number or password"));
         }
 
-        // Check if user registered with Google and has no password
+
         if (user.getProvider() != null && user.getProvider().contains("GOOGLE") && 
             (user.getPassword() == null || user.getPassword().isEmpty())) {
             throw new InvalidRequestException("This email is registered using Google. Please sign in with Google or set a password first.");
@@ -162,6 +167,8 @@ public class UserServiceImpl implements UserService {
         return AuthResponseDTO.builder()
                 .accessToken(accessToken)
                 .userId(user.getUserId())
+                .name(user.getName())
+                .profileImageUrl(user.getProfileImageUrl())
                 .refreshToken(refreshToken)
                 .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
                 .build();
@@ -192,25 +199,55 @@ public class UserServiceImpl implements UserService {
                         User newUser = new User();
                         newUser.setUserId(UserIdGenerator.generateUserId(email, null));
                         newUser.setEmail(email);
+                        newUser.setName(payload.getName());
                         newUser.setProvider("GOOGLE");
                         newUser.setRoles(Set.of(User.Role.ROLE_USER));
                         newUser.setStatus(User.UserStatus.ACTIVE);
                         newUser.setIsTwoFactorEnabled(false);
-                        newUser.setEmailVerified(true); // Google verifies emails
+                        newUser.setEmailVerified(true);
                         newUser.setCreatedAt(Instant.now());
-                        return userRepository.save(newUser);
+                        return newUser;
                     });
+
 
             if (user.getProvider() == null || user.getProvider().isEmpty()) {
                 user.setProvider("GOOGLE");
-                userRepository.save(user);
             } else if (!user.getProvider().contains("GOOGLE")) {
                 user.setProvider(user.getProvider() + ",GOOGLE");
-                userRepository.save(user);
+            }
+
+
+            if (payload.getName() != null && !payload.getName().isEmpty()) {
+                user.setName(payload.getName());
+            }
+
+
+            String cloudinaryUrl = null;
+            if (payload.getPicture() != null && !payload.getPicture().isEmpty()) {
+                try {
+                    System.out.println(" Uploading Google profile picture to Cloudinary...");
+                    System.out.println("  Source: " + payload.getPicture());
+                    
+                    cloudinaryUrl = cloudinaryService.uploadImageFromUrl(
+                        payload.getPicture(), 
+                        "profile_images"
+                    );
+                    
+                    user.setProfileImageUrl(cloudinaryUrl);
+                    System.out.println(" Profile image uploaded to Cloudinary: " + cloudinaryUrl);
+                } catch (Exception e) {
+                    System.err.println(" Failed to upload profile image to Cloudinary: " + e.getMessage());
+                    e.printStackTrace();
+
+                    System.out.println(" Keeping existing profile image URL");
+                }
             }
 
             user.setLastLogin(Instant.now());
             userRepository.save(user);
+
+
+            syncProfileWithTrackerService(user.getUserId(), user.getEmail(), user.getName(), user.getProfileImageUrl());
 
             Map<String, Object> claims = new HashMap<>();
             claims.put("roles", user.getRoles());
@@ -234,6 +271,8 @@ public class UserServiceImpl implements UserService {
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .userId(user.getUserId())
+                    .name(user.getName())
+                    .profileImageUrl(user.getProfileImageUrl())
                     .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
                     .build();
 
@@ -268,6 +307,8 @@ public class UserServiceImpl implements UserService {
         return AuthResponseDTO.builder()
                 .accessToken(newAccessToken)
                 .userId(user.getUserId())
+                .name(user.getName())
+                .profileImageUrl(user.getProfileImageUrl())
                 .refreshToken(request.getRefreshToken())
                 .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
                 .build();
@@ -330,5 +371,57 @@ public class UserServiceImpl implements UserService {
 
         otpEntity.setUsed(true);
         forgotPasswordOtpRepository.save(otpEntity);
+    }
+
+    private void syncProfileWithTrackerService(String userId, String email, String name, String profilePictureUrl) {
+        try {
+            System.out.println("========================================");
+            System.out.println("✓ Syncing profile with tracker-service");
+            System.out.println("  User ID: " + userId);
+            System.out.println("  Email: " + email);
+            System.out.println("  Name: " + name);
+            System.out.println("  Profile Picture URL: " + profilePictureUrl);
+            System.out.println("  Tracker Service URL: " + trackerServiceUrl);
+            System.out.println("========================================");
+            
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            
+            Map<String, String> payload = new HashMap<>();
+            payload.put("userId", userId);
+            payload.put("email", email);
+            if (name != null) payload.put("name", name);
+            if (profilePictureUrl != null) payload.put("profilePictureUrl", profilePictureUrl);
+            
+            String jsonPayload = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload);
+            System.out.println("✓ Request payload: " + jsonPayload);
+            
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(trackerServiceUrl + "/api/profile/sync-google"))
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+            
+            System.out.println("✓ Sending request to: " + trackerServiceUrl + "/api/profile/sync-google");
+            
+            java.net.http.HttpResponse<String> response = client.send(request, 
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            
+            System.out.println("✓ Response status: " + response.statusCode());
+            System.out.println("✓ Response body: " + response.body());
+            
+            if (response.statusCode() == 200) {
+                System.out.println("✅ Profile synced successfully with tracker-service");
+            } else {
+                System.err.println("✗ Failed to sync profile. Status: " + response.statusCode());
+                System.err.println("✗ Response: " + response.body());
+            }
+        } catch (Exception e) {
+            System.err.println("========================================");
+            System.err.println("✗ Error syncing profile with tracker-service");
+            System.err.println("✗ Error type: " + e.getClass().getName());
+            System.err.println("✗ Error message: " + e.getMessage());
+            e.printStackTrace();
+            System.err.println("========================================");
+        }
     }
 }

@@ -43,9 +43,9 @@ public class WatchlistService {
         Watchlist watchlist = watchlistRepository.findById(watchlistId)
                 .orElseThrow(() -> new RuntimeException("Watchlist not found"));
         
-        // Check if stock already exists
+
         boolean exists = watchlist.getStocks().stream()
-                .anyMatch(stock -> stock.getIsin().equals(item.getIsin()));
+                .anyMatch(stock -> java.util.Objects.equals(stock.getIsin(), item.getIsin()));
         
         if (!exists) {
             watchlist.getStocks().add(item);

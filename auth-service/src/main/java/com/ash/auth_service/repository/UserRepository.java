@@ -16,7 +16,7 @@ public interface UserRepository extends MongoRepository<User, String> {
     boolean existsByEmail(String email);
     boolean existsByPhoneNumber(String phoneNumber);
 
-    // Admin queries
+
     List<User> findByStatus(User.UserStatus status);
     List<User> findByProviderContaining(String provider);
     

@@ -10,5 +10,5 @@ public class ExcelUploadRequestDTO {
     private String userId;
     private String accountId;
 
-    private String mode; // APPEND or UPDATE
+    private String mode; 
 }

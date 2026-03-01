@@ -45,7 +45,13 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/health",
-                                "/api/auth/google"
+                                "/api/auth/google",
+                                "/api/news",
+                                "/api/files/**",
+                                "/api/stock-news",
+                                "/api/stock-news/**",
+                                "/api/stock-view/**",
+                                "/api/profile/sync-google"
                         ).permitAll()
 
                         .anyRequest().authenticated()
@@ -65,7 +71,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 

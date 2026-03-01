@@ -13,18 +13,19 @@ import java.util.Collections;
 @Component
 public class GoogleTokenVerifier {
 
-    @Value("${google.oauth.client-id.web:536290645008-ja4a5b4rfdps78c1pbiudvghtnmamtcu.apps.googleusercontent.com}")
+    @Value("${google.oauth.client-id.web}")
     private String webClientId;
 
-    @Value("${google.oauth.client-id.android:536290645008-kli0hi712vadq6rmssdk2vt0mi4mdlfj.apps.googleusercontent.com}")
+    @Value("${google.oauth.client-id.android}")
     private String androidClientId;
 
     private GoogleIdTokenVerifier verifier;
 
     @PostConstruct
     public void init() {
+
         verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(androidClientId))
+                .setAudience(java.util.Arrays.asList(webClientId, androidClientId))
                 .build();
         System.out.println(" Google Token Verifier initialized");
         System.out.println("   Web Client ID: " + webClientId);
@@ -37,7 +38,7 @@ public class GoogleTokenVerifier {
                 throw new RuntimeException("ID token is null or empty");
             }
 
-            System.out.println("🔵 Verifying Google ID token...");
+            System.out.println(" Verifying Google ID token...");
             System.out.println("   Token length: " + idTokenString.length());
 
             GoogleIdToken idToken = verifier.verify(idTokenString);
@@ -54,7 +55,7 @@ public class GoogleTokenVerifier {
             String pictureUrl = (String) payload.get("picture");
             Boolean emailVerified = payload.getEmailVerified();
 
-            System.out.println("✅ Token verified successfully");
+            System.out.println(" Token verified successfully");
             System.out.println("   Email: " + email);
             System.out.println("   User ID: " + userId);
             System.out.println("   Name: " + name);

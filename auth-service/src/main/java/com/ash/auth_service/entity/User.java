@@ -25,6 +25,8 @@ public class User {
     private String phoneNumber;
     private String password;
     private String provider;
+    private String profileImageUrl;
+    private String name;
 
     private Set<Role> roles;
     private UserStatus status;

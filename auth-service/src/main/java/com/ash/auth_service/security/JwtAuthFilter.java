@@ -41,14 +41,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtil.extractAllClaims(token);
                 String userId = claims.getSubject();
                 
-                // Handle roles as a collection (Set/List from JWT)
+
                 Object rolesObj = claims.get("roles");
                 java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
                 
                 if (rolesObj instanceof java.util.Collection) {
                     for (Object roleObj : (java.util.Collection<?>) rolesObj) {
                         final String roleStr = roleObj.toString();
-                        // Roles already have ROLE_ prefix
+
                         authorities.add(() -> roleStr);
                     }
                 } else if (rolesObj instanceof String) {

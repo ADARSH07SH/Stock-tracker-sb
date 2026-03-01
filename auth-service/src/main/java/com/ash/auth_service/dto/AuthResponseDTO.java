@@ -13,5 +13,7 @@ public class AuthResponseDTO {
     private String accessToken;
     private String refreshToken;
     private String userId;
+    private String name;
+    private String profileImageUrl;
     private long expiresIn;
 }

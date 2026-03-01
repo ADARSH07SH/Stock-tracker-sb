@@ -29,6 +29,13 @@ public class PortfolioController {
         return portfolioService.getPortfolio(userId, accountId);
     }
 
+    @GetMapping("/all")
+    public java.util.List<PortfolioResponseDTO> getAllPortfolios(
+            @RequestParam String userId
+    ) {
+        return portfolioService.getAllPortfolios(userId);
+    }
+
     @PostMapping("/confirm-sold")
     public void confirmSoldStocks(@RequestBody ConfirmSoldStocksRequestDTO request) {
         portfolioService.confirmSoldStocks(request);

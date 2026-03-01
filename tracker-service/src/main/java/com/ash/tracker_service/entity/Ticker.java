@@ -4,6 +4,8 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.Instant;
+
 @Document(collection = "tickers")
 @Getter
 @Setter
@@ -19,4 +21,11 @@ public class Ticker {
     private String symbol;
     private String name;
     private String isin;
+
+    
+    @Builder.Default
+    private Long viewCount = 0L;
+
+    
+    private Instant lastViewedAt;
 }

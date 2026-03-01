@@ -17,4 +17,9 @@ public interface TickerRepository extends MongoRepository<Ticker, String> {
     List<Ticker> searchByQuery(String query);
 
     Optional<Ticker> findByIsinAndSource(String isin, String source);
+
+    Optional<Ticker> findFirstBySymbolIgnoreCase(String symbol);
+
+
+    List<Ticker> findTop20ByOrderByViewCountDesc();
 }
