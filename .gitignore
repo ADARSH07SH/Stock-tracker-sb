@@ -39,6 +39,7 @@ deployment/
 deployment/**/*.json
 deployment/**/*.yaml
 deployment/**/*.yml
+configs-staging-example/
 
 # ========================
 # Node / NPM / Yarn
