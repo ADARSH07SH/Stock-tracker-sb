@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SheetNews | Premium Stock Insights</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --primary: #CCFF00;
+      /* Neon Yellow from v3 */
+      --bg-dark: #0F0F0F;
+      --bg-card: rgba(255, 255, 255, 0.05);
+      --text-main: #FFFFFF;
+      --text-secondary: #AAAAAA;
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --accent-gradient: linear-gradient(135deg, #CCFF00 0%, #9EFB00 100%);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(204, 255, 0, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(204, 255, 0, 0.05) 0%, transparent 40%);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar - Browse Stocks */
+    .sidebar {
+      background: rgba(15, 15, 15, 0.8);
+      border-right: 1px solid var(--glass-border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header {
+      margin-bottom: 10px;
+    }
+
+    .header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .config-overlay {
+      background: var(--bg-card);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 5px;
+    }
+
+    .search-container {
+      position: relative;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 15px rgba(204, 255, 0, 0.1);
+    }
+
+    .stock-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 8px;
+    }
+
+    .stock-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .stock-list::-webkit-scrollbar-thumb {
+      background: var(--glass-border);
+      border-radius: 10px;
+    }
+
+    .stock-item {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stock-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--glass-border);
+    }
+
+    .stock-item.active {
+      background: rgba(204, 255, 0, 0.1);
+      border-color: var(--primary);
+    }
+
+    .stock-item .name {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .stock-item .arrow {
+      opacity: 0;
+      color: var(--primary);
+      transition: all 0.2s ease;
+    }
+
+    .stock-item:hover .arrow {
+      opacity: 1;
+      transform: translateX(4px);
+    }
+
+    /* Main Content */
+    .main-content {
+      padding: 40px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .welcome-state {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .welcome-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 24px;
+      fill: var(--primary);
+      opacity: 0.5;
+    }
+
+    .news-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .news-header h2 {
+      font-size: 32px;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .news-header .meta {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 24px;
+    }
+
+    .news-card {
+      background: var(--bg-card);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .news-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(204, 255, 0, 0.3);
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .news-card .date {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .news-card .title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 12px;
+      color: var(--text-main);
+    }
+
+    .news-card .content {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(204, 255, 0, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .empty-list {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* Utility */
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-positive {
+      background: rgba(0, 255, 128, 0.1);
+      color: #00FF80;
+    }
+
+    .badge-negative {
+      background: rgba(255, 50, 50, 0.1);
+      color: #FF3232;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="header">
+        <h1>SheetNews</h1>
+      </div>
+
+      <div class="config-overlay">
+        <div style="margin-bottom: 10px;">
+          <label
+            style="display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">API
+            Key</label>
+          <input type="password" id="apiKey" placeholder="secret123" value="secret123">
+        </div>
+      </div>
+
+      <div class="search-container">
+        <input type="text" id="sheetSearch" placeholder="Search stocks...">
+      </div>
+
+      <div id="stockList" class="stock-list">
+        <div class="empty-list">Loading sheets...</div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="main-content" id="mainContent">
+      <div class="welcome-state" id="welcomeState">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
+          <path d="M14 17h2v-7h-2v7zm-4 0h2V7h-2v10zm-4 0h2v-4H6v4z" />
+        </svg>
+        <h2>Select a stock from the sidebar</h2>
+        <p>View the latest updates and score shifts from Google Sheets</p>
+      </div>
+
+      <div id="newsView" style="display: none;">
+        <div class="news-header">
+          <div>
+            <h2 id="currentStockName">Stock Name</h2>
+            <div class="meta" id="currentStockMeta">32 News Items Found</div>
+          </div>
+          <a href="#" id="viewSourceLink" target="_blank"
+            style="color: var(--primary); text-decoration: none; font-size: 14px; font-weight: 600;">View Raw Sheet
+            ↗</a>
+        </div>
+        <div class="news-grid" id="newsGrid">
+          <!-- Cards here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const apiKeyInput = document.getElementById('apiKey');
+    const sheetSearch = document.getElementById('sheetSearch');
+    const stockListContainer = document.getElementById('stockList');
+    const newsView = document.getElementById('newsView');
+    const welcomeState = document.getElementById('welcomeState');
+    const newsGrid = document.getElementById('newsGrid');
+    const currentStockName = document.getElementById('currentStockName');
+    const currentStockMeta = document.getElementById('currentStockMeta');
+    const viewSourceLink = document.getElementById('viewSourceLink');
+
+    let allStocks = [];
+
+    async function fetchStocks() {
+      try {
+        const response = await fetch('/api/stock-links', {
+          headers: { 'x-api-key': apiKeyInput.value }
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+          allStocks = result.data;
+          renderStockList(allStocks);
+        } else {
+          stockListContainer.innerHTML = `<div class="empty-list" style="color: #ff4444">${result.message || 'Error loading stocks'}</div>`;
+        }
+      } catch (err) {
+        stockListContainer.innerHTML = `<div class="empty-list" style="color: #ff4444">Connection Failed</div>`;
+      }
+    }
+
+    function renderStockList(stocks) {
+      stockListContainer.innerHTML = '';
+      if (stocks.length === 0) {
+        stockListContainer.innerHTML = '<div class="empty-list">No stocks found</div>';
+        return;
+      }
+
+      stocks.forEach(stock => {
+        const item = document.createElement('div');
+        item.className = 'stock-item';
+        item.innerHTML = `
+                    <span class="name">${stock.name}</span>
+                    <span class="arrow">→</span>
+                `;
+        item.onclick = (event) => fetchStockNews(stock, event);
+        stockListContainer.appendChild(item);
+      });
+    }
+
+    async function fetchStockNews(stock, event) {
+      document.querySelectorAll('.stock-item').forEach(el => el.classList.remove('active'));
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
+
+      welcomeState.style.display = 'none';
+      newsView.style.display = 'block';
+      newsGrid.innerHTML = `
+                <div style="grid-column: 1/-1; display:flex; justify-content:center; padding: 100px;">
+                    <div class="loading-spinner"></div>
+                </div>
+            `;
+
+      try {
+        const response = await fetch(`/api/sheet-news/${encodeURIComponent(stock.name)}`, {
+          headers: { 'x-api-key': apiKeyInput.value }
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          renderNews(result.data);
+        } else {
+          newsGrid.innerHTML = `<div style="grid-column: 1/-1; color: #ff4444; text-align:center;">${result.message || 'Failed to fetch news'}</div>`;
+        }
+      } catch (err) {
+        newsGrid.innerHTML = `<div style="grid-column: 1/-1; color: #ff4444; text-align:center;">Network error occurred</div>`;
+      }
+    }
+
+    function renderNews(payload) {
+      const { stockName, url, data } = payload;
+      currentStockName.textContent = stockName;
+      currentStockMeta.textContent = `${data.length} Updates Found`;
+      viewSourceLink.href = url;
+
+      newsGrid.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        newsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--text-secondary);">No news data available for this sheet</div>';
+        return;
+      }
+
+      data.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'news-card';
+
+        const date = item.Date || item.time || item.Timestamp || 'Recent';
+        const headline = item.Headline || item.Title || item.News || item.Text || 'Untitled Update';
+        const summary = item.Summary || item.Description || item.Details || Object.values(item).slice(2).join(' ').substring(0, 150) + '...';
+
+        card.innerHTML = `
+                    <span class="date">${date}</span>
+                    <div class="title">${headline}</div>
+                    <div class="content">${summary}</div>
+                `;
+        newsGrid.appendChild(card);
+      });
+    }
+
+   
+    sheetSearch.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      const filtered = allStocks.filter(s => s.name.toLowerCase().includes(term));
+      renderStockList(filtered);
+    });
+
+
+    fetchStocks();
+
+    let timeout;
+    apiKeyInput.addEventListener('input', () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(fetchStocks, 1000);
+    });
+
+  </script>
+</body>
+
+</html>
