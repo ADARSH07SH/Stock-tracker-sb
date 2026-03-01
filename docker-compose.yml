@@ -4,8 +4,8 @@ services:
   auth-service:
     build: ./auth-service
     container_name: auth-service
-    expose:
-      - "8081"
+    ports:
+      - "8081:8081"
     networks:
       - stock-tracker-network
     restart: unless-stopped
@@ -19,8 +19,8 @@ services:
   tracker-service:
     build: ./tracker-service
     container_name: tracker-service
-    expose:
-      - "8082"
+    ports:
+      - "8082:8082"
     networks:
       - stock-tracker-network
     restart: unless-stopped
@@ -37,8 +37,8 @@ services:
   ai-service:
     build: ./ai-service
     container_name: ai-service
-    expose:
-      - "8084"
+    ports:
+      - "8084:8084"
     networks:
       - stock-tracker-network
     restart: unless-stopped
