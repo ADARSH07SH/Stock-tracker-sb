@@ -1,10 +1,12 @@
 package com.ash.tracker_service.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -19,15 +21,12 @@ public class YahooMarketService {
     private String yahooBaseUrl;
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private HttpEntity<Void> buildEntity() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        headers.set("Accept", "application/json, text/plain, */*");
-        headers.set("Accept-Language", "en-US,en;q=0.9");
-        headers.set("Accept-Encoding", "gzip, deflate, br");
-        headers.set("Referer", "https://finance.yahoo.com/");
-        headers.set("Origin", "https://finance.yahoo.com");
+        headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        headers.set("Accept", "*/*");
         return new HttpEntity<>(headers);
     }
 
@@ -37,7 +36,6 @@ public class YahooMarketService {
     }
 
     public Object getChartAndQuote(String symbol, String interval, String range) {
-     
         try {
             String yahooSymbol = buildYahooSymbol(symbol, ".NS");
             String url = yahooBaseUrl +
@@ -45,27 +43,37 @@ public class YahooMarketService {
                     "?interval=" + interval +
                     "&range=" + range;
 
-            return restTemplate.exchange(
+            System.out.println("Fetching Yahoo data for: " + yahooSymbol);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
                     buildEntity(),
-                    Object.class
-            ).getBody();
+                    String.class
+            );
+            
+            return objectMapper.readValue(response.getBody(), Object.class);
         } catch (Exception e) {
+            System.out.println("NSE failed for " + symbol + ", trying BSE: " + e.getMessage());
+            try {
+                String yahooSymbol = buildYahooSymbol(symbol, ".BO");
+                String url = yahooBaseUrl +
+                        "v8/finance/chart/" + yahooSymbol +
+                        "?interval=" + interval +
+                        "&range=" + range;
 
-            System.out.println("NSE failed for " + symbol + ", trying BSE");
-            String yahooSymbol = buildYahooSymbol(symbol, ".BO");
-            String url = yahooBaseUrl +
-                    "v8/finance/chart/" + yahooSymbol +
-                    "?interval=" + interval +
-                    "&range=" + range;
-
-            return restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    buildEntity(),
-                    Object.class
-            ).getBody();
+                ResponseEntity<String> response = restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        buildEntity(),
+                        String.class
+                );
+                
+                return objectMapper.readValue(response.getBody(), Object.class);
+            } catch (Exception ex) {
+                System.err.println("Both NSE and BSE failed for " + symbol + ": " + ex.getMessage());
+                throw new RuntimeException("Failed to fetch data for " + symbol, ex);
+            }
         }
     }
 
@@ -108,12 +116,14 @@ public class YahooMarketService {
             System.out.println("Fetching index data for: " + yahooSymbol);
             System.out.println("URL: " + url);
 
-            return restTemplate.exchange(
+            ResponseEntity<String> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
                     buildEntity(),
-                    Object.class
-            ).getBody();
+                    String.class
+            );
+            
+            return objectMapper.readValue(response.getBody(), Object.class);
         } catch (Exception e) {
             System.err.println("Error fetching index data: " + e.getMessage());
             e.printStackTrace();

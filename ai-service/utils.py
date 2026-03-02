@@ -20,6 +20,10 @@ def extract_user_id(authorization: str):
 
 
 async def fetch_portfolio(headers, user_id):
+    """
+    Fetch user portfolio data from tracker service.
+    Returns None if fetch fails instead of raising exception.
+    """
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             response = await client.get(
@@ -27,12 +31,19 @@ async def fetch_portfolio(headers, user_id):
                 headers=headers,
                 params={"userId": user_id}
             )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Portfolio fetch failed with status {response.status_code}: {response.text}")
+                return None
+                
         except httpx.ReadTimeout:
-            raise HTTPException(status_code=504, detail="Portfolio service timeout")
+            print("Portfolio service timeout")
+            return None
         except httpx.ConnectError:
-            raise HTTPException(status_code=503, detail="Portfolio service unavailable")
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=f"Portfolio fetch failed: {response.text}")
-
-    return response.json()
+            print("Portfolio service unavailable")
+            return None
+        except Exception as e:
+            print(f"Portfolio fetch error: {str(e)}")
+            return None

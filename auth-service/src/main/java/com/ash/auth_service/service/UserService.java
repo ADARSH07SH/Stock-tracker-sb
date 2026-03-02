@@ -12,6 +12,8 @@ public interface UserService {
 
     void verifyOtpAndResetPassword(ResetPasswordRequestDTO request);
 
+    AuthResponseDTO verifyEmailOtp(VerifyEmailRequestDTO request);
+
     AuthResponseDTO googleLogin(GoogleAuthRequestDTO request);
 
     AuthResponseDTO refreshToken(RefreshTokenRequestDTO request);

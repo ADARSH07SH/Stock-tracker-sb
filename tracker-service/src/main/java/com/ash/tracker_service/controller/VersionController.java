@@ -1,5 +1,7 @@
 package com.ash.tracker_service.controller;
 
+import com.ash.tracker_service.entity.AppVersion;
+import com.ash.tracker_service.service.AppVersionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,11 +19,12 @@ import java.util.Map;
 public class VersionController {
 
     private final RestTemplate restTemplate;
+    private final AppVersionService appVersionService;
 
     @Value("${app.version:3.0.1}")
     private String currentVersion;
 
-    @Value("${app.github.repo:adarsh07sh/Stock-Tracker}")
+    @Value("${app.github.repo:ADARSH07SH/Stock-tracker-sb}")
     private String githubRepo;
 
     @GetMapping("/current")
@@ -34,49 +37,23 @@ public class VersionController {
     @GetMapping("/check")
     public ResponseEntity<Map<String, Object>> checkForUpdates() {
         try {
-            String url = "https://api.github.com/repos/" + githubRepo + "/releases/latest";
-            log.info("Checking for updates from: {}", url);
-
-            Map<String, Object> release = restTemplate.getForObject(url, Map.class);
+            AppVersion latestVersion = appVersionService.getLatestVersion();
             
-            if (release != null) {
-                String latestVersion = (String) release.get("tag_name");
-                String downloadUrl = null;
-                String releaseNotes = (String) release.get("body");
-                String publishedAt = (String) release.get("published_at");
-                
+            boolean updateAvailable = isNewerVersion(currentVersion, latestVersion.getVersion());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("currentVersion", currentVersion);
+            response.put("latestVersion", latestVersion.getVersion());
+            response.put("updateAvailable", updateAvailable);
+            response.put("downloadUrl", latestVersion.getDownloadUrl());
+            response.put("releaseNotes", latestVersion.getReleaseNotes());
+            response.put("forceUpdate", latestVersion.isForceUpdate());
+            response.put("publishedAt", latestVersion.getCreatedAt());
 
-                if (release.get("assets") instanceof java.util.List) {
-                    java.util.List<Map<String, Object>> assets = (java.util.List<Map<String, Object>>) release.get("assets");
-                    for (Map<String, Object> asset : assets) {
-                        String name = (String) asset.get("name");
-                        if (name != null && name.endsWith(".apk")) {
-                            downloadUrl = (String) asset.get("browser_download_url");
-                            break;
-                        }
-                    }
-                }
+            log.info("✅ Update check complete. Current: {}, Latest: {}, Update available: {}", 
+                currentVersion, latestVersion.getVersion(), updateAvailable);
 
-                boolean updateAvailable = isNewerVersion(currentVersion, latestVersion);
-
-                Map<String, Object> response = new HashMap<>();
-                response.put("currentVersion", currentVersion);
-                response.put("latestVersion", latestVersion);
-                response.put("updateAvailable", updateAvailable);
-                response.put("downloadUrl", downloadUrl);
-                response.put("releaseNotes", releaseNotes);
-                response.put("publishedAt", publishedAt);
-
-                log.info("✅ Update check complete. Current: {}, Latest: {}, Update available: {}", 
-                    currentVersion, latestVersion, updateAvailable);
-
-                return ResponseEntity.ok(response);
-            }
-
-            return ResponseEntity.ok(Map.of(
-                "currentVersion", currentVersion,
-                "updateAvailable", false
-            ));
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             log.error("❌ Failed to check for updates: {}", e.getMessage());

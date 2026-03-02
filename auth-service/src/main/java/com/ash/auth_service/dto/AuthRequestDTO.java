@@ -13,10 +13,10 @@ import lombok.*;
 public class AuthRequestDTO {
 
     @NotEmpty(message="email cannot be empty")
-
     private String email;
+    
+    private String name;
     private String phoneNumber;
-
     private String password;
 
 }

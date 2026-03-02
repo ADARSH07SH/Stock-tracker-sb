@@ -16,4 +16,6 @@ public class AuthResponseDTO {
     private String name;
     private String profileImageUrl;
     private long expiresIn;
+    private String message;
+    private Boolean requiresVerification;
 }

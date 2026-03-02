@@ -86,6 +86,8 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
                 log_debug(f" -> DEBUG: Sample Account Stocks Count: {len(portfolio_data[0].get('stocks', []))}")
         elif portfolio_data == []:
             log_debug(f" -> Result: portfolio_data is an EMPTY LIST []. User has no accounts.")
+        elif portfolio_data is None:
+            log_debug(f" -> Result: Failed to fetch portfolio data. Continuing without it.")
         else:
             log_debug(f" -> Result: portfolio_data is NOT a list: {type(portfolio_data)}")
 

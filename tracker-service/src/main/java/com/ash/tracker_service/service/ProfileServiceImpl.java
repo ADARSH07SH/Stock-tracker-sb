@@ -111,7 +111,8 @@ public class ProfileServiceImpl implements ProfileService {
                     
                     String cloudinaryUrl = cloudinaryService.uploadImageFromUrl(
                         googlePictureUrl, 
-                        "profile_images"
+                        "profile_images/" + userId,
+                        "profile"
                     );
                     
                     user.setProfilePicture(cloudinaryUrl);
@@ -166,19 +167,12 @@ public class ProfileServiceImpl implements ProfileService {
         
 
         if (user.getProfilePicture() != null && !user.getProfilePicture().isEmpty()) {
-            try {
-                System.out.println("✓ Deleting old profile picture: " + user.getProfilePicture());
-                cloudinaryService.deleteImage(user.getProfilePicture());
-                System.out.println("✅ Old profile picture deleted");
-            } catch (Exception e) {
-                System.err.println("⚠️  Failed to delete old profile picture: " + e.getMessage());
-
-            }
+            System.out.println("✓ Old profile picture will be overwritten implicitly by Cloudinary");
         }
         
 
         System.out.println("✓ Uploading new profile picture to Cloudinary...");
-        String imageUrl = cloudinaryService.uploadImage(file, "profile_images");
+        String imageUrl = cloudinaryService.uploadImage(file, "profile_images/" + userId, "profile");
         System.out.println("✅ New profile picture uploaded: " + imageUrl);
         
 

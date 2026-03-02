@@ -10,6 +10,7 @@ import com.ash.auth_service.exception.UserAlreadyExistsException;
 import com.ash.auth_service.repository.ForgotPasswordOtpRepository;
 import com.ash.auth_service.repository.RefreshTokenRepository;
 import com.ash.auth_service.repository.UserRepository;
+import com.ash.auth_service.repository.EmailVerificationOtpRepository;
 import com.ash.auth_service.security.JwtUtil;
 import com.ash.auth_service.util.OtpUtil;
 import com.ash.auth_service.util.UserIdGenerator;
@@ -29,6 +30,7 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final ForgotPasswordOtpRepository forgotPasswordOtpRepository;
+    private final EmailVerificationOtpRepository emailVerificationOtpRepository;
     private final com.ash.auth_service.security.GoogleTokenVerifier googleTokenVerifier;
     private final RefreshTokenRepository refreshTokenRepository;
     private final CloudinaryService cloudinaryService;
@@ -50,8 +52,53 @@ public class UserServiceImpl implements UserService {
             throw new InvalidRequestException("Password must be provided");
         }
 
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            throw new UserAlreadyExistsException("Email already exists");
+        if (request.getEmail() != null) {
+            Optional<User> optUser = userRepository.findByEmail(request.getEmail());
+            if (optUser.isPresent()) {
+                User existingUser = optUser.get();
+                if (existingUser.getProvider() != null && existingUser.getProvider().contains("GOOGLE") &&
+                    (existingUser.getPassword() == null || existingUser.getPassword().isEmpty())) {
+                    
+                    existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+                    if (!existingUser.getProvider().contains("PASSWORD")) {
+                        existingUser.setProvider(existingUser.getProvider() + ",PASSWORD");
+                    }
+                    if (request.getName() != null && !request.getName().isEmpty() && (existingUser.getName() == null || existingUser.getName().isEmpty())) {
+                        existingUser.setName(request.getName());
+                    }
+                    existingUser.setUpdatedAt(Instant.now());
+                    userRepository.save(existingUser);
+                    
+                    Map<String, Object> claims = new HashMap<>();
+                    claims.put("roles", existingUser.getRoles());
+                    claims.put("email", existingUser.getEmail());
+
+                    String accessToken = jwtUtil.generateAccessToken(claims, existingUser.getUserId());
+                    String refreshToken = jwtUtil.generateRefreshToken(existingUser.getUserId());
+
+                    RefreshToken refreshTokenEntity = RefreshToken.builder()
+                            .userId(existingUser.getUserId())
+                            .token(refreshToken)
+                            .expiryTime(Instant.now().plusSeconds(REFRESH_TOKEN_EXPIRE_SECONDS))
+                            .revoked(false)
+                            .build();
+
+                    refreshTokenRepository.save(refreshTokenEntity);
+
+                    return AuthResponseDTO.builder()
+                            .accessToken(accessToken)
+                            .refreshToken(refreshToken)
+                            .userId(existingUser.getUserId())
+                            .name(existingUser.getName())
+                            .profileImageUrl(existingUser.getProfileImageUrl())
+                            .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
+                            .message("Password set successfully!")
+                            .requiresVerification(false)
+                            .build();
+                } else {
+                    throw new UserAlreadyExistsException("Email already exists");
+                }
+            }
         }
 
         if (request.getPhoneNumber() != null &&
@@ -66,6 +113,9 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setUserId(UserIdGenerator.generateUserId(request.getEmail(), request.getPhoneNumber()));
         user.setEmail(request.getEmail());
+        if (request.getName() != null && !request.getName().isEmpty()) {
+            user.setName(request.getName());
+        }
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setProvider("PASSWORD");
         user.setRoles(Set.of(User.Role.ROLE_USER));
@@ -75,18 +125,58 @@ public class UserServiceImpl implements UserService {
         user.setCreatedAt(Instant.now());
         userRepository.save(user);
 
+        String otp = OtpUtil.generateOtp();
+
+        com.ash.auth_service.entity.EmailVerificationOtp otpEntity = com.ash.auth_service.entity.EmailVerificationOtp.builder()
+                .email(request.getEmail())
+                .otp(otp)
+                .expiryTime(Instant.now().plusSeconds(300))
+                .used(false)
+                .build();
+        emailVerificationOtpRepository.save(otpEntity);
 
         try {
-            emailService.sendVerificationEmail(user.getEmail(), user.getEmail());
-            System.out.println(" Verification email sent to: " + user.getEmail());
+            emailService.sendVerificationOtp(user.getEmail(), otp, user.getName());
         } catch (Exception e) {
             System.err.println(" Failed to send verification email: " + e.getMessage());
         }
 
+        return AuthResponseDTO.builder()
+                .userId(user.getUserId())
+                .name(user.getName())
+                .message("Verification OTP sent to your email. Please verify to continue.")
+                .requiresVerification(true)
+                .build();
+    }
+
+    @Override
+    public AuthResponseDTO verifyEmailOtp(VerifyEmailRequestDTO request) {
+        if (request.getEmail() == null || request.getEmail().isEmpty() ||
+                request.getOtp() == null || request.getOtp().isEmpty()) {
+            throw new InvalidRequestException("Email and OTP are required");
+        }
+
+        com.ash.auth_service.entity.EmailVerificationOtp otpEntity = emailVerificationOtpRepository
+                .findByEmailAndOtp(request.getEmail(), request.getOtp())
+                .filter(o -> !o.isUsed())
+                .orElseThrow(() -> new InvalidRequestException("Invalid OTP"));
+
+        if (otpEntity.getExpiryTime().isBefore(Instant.now())) {
+            throw new InvalidRequestException("OTP expired");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new InvalidRequestException("User not found"));
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
+
+        otpEntity.setUsed(true);
+        emailVerificationOtpRepository.save(otpEntity);
+
         Map<String, Object> claims = new HashMap<>();
         claims.put("roles", user.getRoles());
         claims.put("email", user.getEmail());
-
 
         String accessToken = jwtUtil.generateAccessToken(claims, user.getUserId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
@@ -102,11 +192,13 @@ public class UserServiceImpl implements UserService {
 
         return AuthResponseDTO.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .userId(user.getUserId())
                 .name(user.getName())
                 .profileImageUrl(user.getProfileImageUrl())
+                .refreshToken(refreshToken)
                 .expiresIn(ACCESS_TOKEN_EXPIRE_SECONDS)
+                .message("Email verified successfully")
+                .requiresVerification(false)
                 .build();
     }
 
@@ -230,7 +322,8 @@ public class UserServiceImpl implements UserService {
                     
                     cloudinaryUrl = cloudinaryService.uploadImageFromUrl(
                         payload.getPicture(), 
-                        "profile_images"
+                        "profile_images/" + user.getUserId(),
+                        "profile"
                     );
                     
                     user.setProfileImageUrl(cloudinaryUrl);

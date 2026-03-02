@@ -57,6 +57,27 @@ public class CloudinaryService {
         }
     }
 
+    public String uploadImage(MultipartFile file, String folder, String publicId) throws IOException {
+        try {
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", folder,
+                            "public_id", publicId,
+                            "overwrite", true,
+                            "resource_type", "image",
+                            "quality", "auto"
+                    ));
+
+            String imageUrl = (String) uploadResult.get("secure_url");
+            System.out.println("✓ Image uploaded to Cloudinary: " + imageUrl);
+            return imageUrl;
+
+        } catch (IOException e) {
+            System.err.println("✗ Failed to upload image to Cloudinary: " + e.getMessage());
+            throw new IOException("Failed to upload image: " + e.getMessage());
+        }
+    }
+
     /**
      * Upload image from URL (for Google profile pictures)
      */
@@ -65,6 +86,30 @@ public class CloudinaryService {
             Map uploadResult = cloudinary.uploader().upload(imageUrl,
                     ObjectUtils.asMap(
                             "folder", folder,
+                            "resource_type", "image",
+                            "quality", "auto",
+                            "width", 400,
+                            "height", 400,
+                            "crop", "fill"
+                    ));
+
+            String cloudinaryUrl = (String) uploadResult.get("secure_url");
+            System.out.println("✓ Image uploaded from URL to Cloudinary: " + cloudinaryUrl);
+            return cloudinaryUrl;
+
+        } catch (IOException e) {
+            System.err.println("✗ Failed to upload image from URL: " + e.getMessage());
+            return imageUrl; // Return original URL as fallback
+        }
+    }
+
+    public String uploadImageFromUrl(String imageUrl, String folder, String publicId) throws IOException {
+        try {
+            Map uploadResult = cloudinary.uploader().upload(imageUrl,
+                    ObjectUtils.asMap(
+                            "folder", folder,
+                            "public_id", publicId,
+                            "overwrite", true,
                             "resource_type", "image",
                             "quality", "auto",
                             "width", 400,

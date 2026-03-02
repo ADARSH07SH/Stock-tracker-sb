@@ -40,4 +40,17 @@ public class EmailService {
         );
         mailSender.send(message);
     }
+
+    public void sendVerificationOtp(String toEmail, String otp, String userName) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("Stock Tracker - Verify Your Email");
+        message.setText(
+                "Hello " + (userName != null ? userName : "User") + ",\n\n" +
+                        "Thank you for registering!\n\n" +
+                        "Your verification OTP is: " + otp + "\n\n" +
+                        "This OTP is valid for 5 minutes. Do not share it with anyone."
+        );
+        mailSender.send(message);
+    }
 }

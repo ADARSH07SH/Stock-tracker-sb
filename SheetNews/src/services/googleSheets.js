@@ -36,13 +36,13 @@ class GoogleSheetsService {
 
   extractSpreadsheetId(url) {
     if (!url) return null;
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    const match = url.match(/\/spreadsheets\/d\/(?:e\/)?([a-zA-Z0-9-_]+)/);
     return match ? match[1] : null;
   }
 
   extractGid(url) {
     if (!url) return null;
-    const match = url.match(/[#&]gid=([0-9]+)/);
+    const match = url.match(/[#&?]gid=([0-9]+)/);
     return match ? match[1] : null;
   }
 

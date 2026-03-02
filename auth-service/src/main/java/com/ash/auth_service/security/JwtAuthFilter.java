@@ -48,12 +48,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 if (rolesObj instanceof java.util.Collection) {
                     for (Object roleObj : (java.util.Collection<?>) rolesObj) {
                         final String roleStr = roleObj.toString();
-
-                        authorities.add(() -> roleStr);
+                        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(roleStr));
                     }
                 } else if (rolesObj instanceof String) {
                     final String roleStr = (String) rolesObj;
-                    authorities.add(() -> roleStr);
+                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(roleStr));
                 }
 
                 UsernamePasswordAuthenticationToken authentication =

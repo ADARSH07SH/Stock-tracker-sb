@@ -8,11 +8,12 @@ import com.ash.tracker_service.security.JwtUtil;
 import com.ash.tracker_service.entity.User;
 import com.ash.tracker_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -23,7 +24,8 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class GoogleAuthController {
     
-    private static final String GOOGLE_CLIENT_ID = "103965612723-uafhct6f9v1sqekuc645cnbkjorr28uv.apps.googleusercontent.com";
+    @Value("${google.client.id}")
+    private String googleClientId;
     
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
@@ -34,10 +36,17 @@ public class GoogleAuthController {
         try {
             String idToken = request.get("idToken");
             
+            if (idToken == null || idToken.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "ID token is required"
+                ));
+            }
+            
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(), 
                     GsonFactory.getDefaultInstance())
-                .setAudience(Collections.singletonList(GOOGLE_CLIENT_ID))
+                .setAudience(Arrays.asList(googleClientId))
                 .build();
 
             GoogleIdToken token = verifier.verify(idToken);
@@ -76,14 +85,14 @@ public class GoogleAuthController {
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Invalid ID token"
+                    "message", "Invalid ID token - verification failed"
                 ));
             }
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of(
                 "success", false,
-                "message", e.getMessage()
+                "message", "Google authentication failed: " + e.getMessage()
             ));
         }
     }

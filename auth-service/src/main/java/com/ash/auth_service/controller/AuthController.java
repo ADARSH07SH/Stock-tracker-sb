@@ -81,6 +81,17 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<AuthResponseDTO>> verifyEmail(@RequestBody VerifyEmailRequestDTO request) {
+        try {
+            AuthResponseDTO response = userService.verifyEmailOtp(request);
+            return ResponseEntity.ok(ApiResponse.success(response, "Email verified successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<AuthResponseDTO>> refreshToken(@RequestBody RefreshTokenRequestDTO request) {
         try {

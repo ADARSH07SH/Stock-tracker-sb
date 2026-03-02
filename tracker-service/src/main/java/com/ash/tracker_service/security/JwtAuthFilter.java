@@ -54,14 +54,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (rolesObj instanceof java.util.Collection) {
                 for (Object roleObj : (java.util.Collection<?>) rolesObj) {
                     final String roleStr = roleObj.toString();
-
-                    authorities.add(() -> roleStr);
+                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(roleStr));
                 }
             } else if (rolesObj instanceof String) {
                 final String roleStr = (String) rolesObj;
-                authorities.add(() -> roleStr);
+                authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(roleStr));
             }
-            
             
             if (authorities.isEmpty()) {
                 String role = claims.get("role", String.class);
@@ -70,7 +68,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         role = "ROLE_" + role;
                     }
                     final String finalRole = role;
-                    authorities.add(() -> finalRole);
+                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(finalRole));
                 }
             }
 
