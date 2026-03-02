@@ -101,12 +101,12 @@ public class ProfileServiceImpl implements ProfileService {
         if (googlePictureUrl != null && !googlePictureUrl.isEmpty()) {
 
             if (googlePictureUrl.contains("cloudinary.com")) {
-                System.out.println("✓ Using Cloudinary URL from auth-service: " + googlePictureUrl);
+                System.out.println(" Using Cloudinary URL from auth-service: " + googlePictureUrl);
                 user.setProfilePicture(googlePictureUrl);
             } else {
 
                 try {
-                    System.out.println("✓ Uploading Google profile picture to Cloudinary...");
+                    System.out.println(" Uploading Google profile picture to Cloudinary...");
                     System.out.println("  Source URL: " + googlePictureUrl);
                     
                     String cloudinaryUrl = cloudinaryService.uploadImageFromUrl(

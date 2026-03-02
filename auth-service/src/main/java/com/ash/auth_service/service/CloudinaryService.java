@@ -32,7 +32,7 @@ public class CloudinaryService {
                 "api_secret", apiSecret,
                 "secure", true
         ));
-        System.out.println("✓ Cloudinary initialized: " + cloudName);
+        System.out.println("Cloudinary initialized: " + cloudName);
     }
 
     

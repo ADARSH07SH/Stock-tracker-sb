@@ -50,13 +50,13 @@ public class VersionController {
             response.put("forceUpdate", latestVersion.isForceUpdate());
             response.put("publishedAt", latestVersion.getCreatedAt());
 
-            log.info("✅ Update check complete. Current: {}, Latest: {}, Update available: {}", 
+            log.info(" Update check complete. Current: {}, Latest: {}, Update available: {}", 
                 currentVersion, latestVersion.getVersion(), updateAvailable);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("❌ Failed to check for updates: {}", e.getMessage());
+            log.error(" Failed to check for updates: {}", e.getMessage());
             return ResponseEntity.ok(Map.of(
                 "currentVersion", currentVersion,
                 "updateAvailable", false,

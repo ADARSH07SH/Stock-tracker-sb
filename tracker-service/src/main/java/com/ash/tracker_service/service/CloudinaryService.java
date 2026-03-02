@@ -35,9 +35,7 @@ public class CloudinaryService {
         System.out.println("✓ Cloudinary initialized: " + cloudName);
     }
 
-    /**
-     * Upload image to Cloudinary
-     */
+    
     public String uploadImage(MultipartFile file, String folder) throws IOException {
         try {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
@@ -78,9 +76,7 @@ public class CloudinaryService {
         }
     }
 
-    /**
-     * Upload image from URL (for Google profile pictures)
-     */
+    
     public String uploadImageFromUrl(String imageUrl, String folder) throws IOException {
         try {
             Map uploadResult = cloudinary.uploader().upload(imageUrl,
@@ -94,12 +90,12 @@ public class CloudinaryService {
                     ));
 
             String cloudinaryUrl = (String) uploadResult.get("secure_url");
-            System.out.println("✓ Image uploaded from URL to Cloudinary: " + cloudinaryUrl);
+            System.out.println(" Image uploaded from URL to Cloudinary: " + cloudinaryUrl);
             return cloudinaryUrl;
 
         } catch (IOException e) {
-            System.err.println("✗ Failed to upload image from URL: " + e.getMessage());
-            return imageUrl; // Return original URL as fallback
+            System.err.println(" Failed to upload image from URL: " + e.getMessage());
+            return imageUrl;
         }
     }
 
@@ -118,18 +114,16 @@ public class CloudinaryService {
                     ));
 
             String cloudinaryUrl = (String) uploadResult.get("secure_url");
-            System.out.println("✓ Image uploaded from URL to Cloudinary: " + cloudinaryUrl);
+            System.out.println(" Image uploaded from URL to Cloudinary: " + cloudinaryUrl);
             return cloudinaryUrl;
 
         } catch (IOException e) {
-            System.err.println("✗ Failed to upload image from URL: " + e.getMessage());
-            return imageUrl; // Return original URL as fallback
+            System.err.println(" Failed to upload image from URL: " + e.getMessage());
+            return imageUrl;
         }
     }
 
-    /**
-     * Delete image from Cloudinary
-     */
+  
     public void deleteImage(String imageUrl) {
         try {
             String publicId = extractPublicId(imageUrl);
@@ -155,7 +149,7 @@ public class CloudinaryService {
                 return withoutVersion.substring(0, withoutVersion.lastIndexOf('.'));
             }
         } catch (Exception e) {
-            System.err.println("✗ Failed to extract public_id: " + e.getMessage());
+            System.err.println(" Failed to extract public_id: " + e.getMessage());
         }
 
         return null;
