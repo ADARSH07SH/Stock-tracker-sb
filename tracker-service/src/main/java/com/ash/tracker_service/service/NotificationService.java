@@ -83,4 +83,50 @@ public class NotificationService {
             log.error("Failed to send Expo push notifications: {}", e.getMessage(), e);
         }
     }
+
+    public void savePushToken(String userId, String pushToken) {
+        TrackerUser user = trackerUserRepository.findByUserId(userId).orElse(null);
+
+        if (user == null) {
+            user = TrackerUser.builder()
+                    .userId(userId)
+                    .expoPushToken(pushToken)
+                    .createdAt(java.time.Instant.now())
+                    .updatedAt(java.time.Instant.now())
+                    .build();
+            trackerUserRepository.save(user);
+            log.info("Created new user and saved push token for: {}", userId);
+            return;
+        }
+
+        user.setExpoPushToken(pushToken);
+        user.setUpdatedAt(java.time.Instant.now());
+        trackerUserRepository.save(user);
+        log.info("Saved push token for user: {}", userId);
+    }
+
+    public int broadcastToAllUsers(String title, String body, Map<String, Object> data) {
+        List<TrackerUser> users = trackerUserRepository.findAll();
+        List<String> tokens = users.stream()
+                .filter(u -> u.getExpoPushToken() != null && !u.getExpoPushToken().isEmpty())
+                .map(TrackerUser::getExpoPushToken)
+                .collect(Collectors.toList());
+        
+        if (!tokens.isEmpty()) {
+            sendExpoNotifications(tokens, title, body, data);
+        }
+        
+        return tokens.size();
+    }
+
+    public boolean sendToUser(String userId, String title, String body, Map<String, Object> data) {
+        TrackerUser user = trackerUserRepository.findByUserId(userId).orElse(null);
+        
+        if (user == null || user.getExpoPushToken() == null || user.getExpoPushToken().isEmpty()) {
+            return false;
+        }
+        
+        sendExpoNotifications(List.of(user.getExpoPushToken()), title, body, data);
+        return true;
+    }
 }

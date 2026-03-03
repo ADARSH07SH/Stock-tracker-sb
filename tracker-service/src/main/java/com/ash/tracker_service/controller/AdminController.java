@@ -3,11 +3,12 @@ package com.ash.tracker_service.controller;
 import com.ash.tracker_service.dto.MissingIsinUpdateRequest;
 import com.ash.tracker_service.entity.AppVersion;
 import com.ash.tracker_service.entity.MissingIsin;
+import com.ash.tracker_service.entity.TrackerUser;
+import com.ash.tracker_service.repository.TrackerUserRepository;
 import com.ash.tracker_service.service.AppVersionService;
 import com.ash.tracker_service.service.MissingIsinService;
 import com.ash.tracker_service.service.NotificationService;
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.formula.functions.T;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,7 @@ public class AdminController {
     private final MissingIsinService missingIsinService;
     private final AppVersionService appVersionService;
     private final NotificationService notificationService;
+    private final TrackerUserRepository trackerUserRepository;
 
     @GetMapping("/missing-isin")
     public ResponseEntity<List<MissingIsin>> getAllMissingIsin(@RequestParam(required = false) String status) {
@@ -82,4 +84,29 @@ public class AdminController {
         
         return ResponseEntity.ok(updated);
     }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getStats() {
+        long totalUsers = trackerUserRepository.count();
+        long usersWithTokens = trackerUserRepository.findAll().stream()
+                .filter(u -> u.getExpoPushToken() != null && !u.getExpoPushToken().isEmpty())
+                .count();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", Map.of(
+                "totalUsers", totalUsers,
+                "usersWithPushTokens", usersWithTokens
+            )
+        ));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<?> getAllUsers() {
+        List<TrackerUser> users = trackerUserRepository.findAll();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", users
+        ));
+    }
 }
+

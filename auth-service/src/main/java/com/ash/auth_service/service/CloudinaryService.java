@@ -89,12 +89,10 @@ public class CloudinaryService {
                     ObjectUtils.asMap(
                             "folder", folder,
                             "resource_type", "image",
-                            "transformation", ObjectUtils.asMap(
-                                    "quality", "auto",
-                                    "fetch_format", "auto",
-                                    "width", 400,
-                                    "height", 400,
-                                    "crop", "fill"
+                            "eager", java.util.Arrays.asList(
+                                    new com.cloudinary.Transformation()
+                                            .width(400).height(400).crop("fill")
+                                            .quality("auto").fetchFormat("auto")
                             )
                     ));
 
@@ -102,7 +100,7 @@ public class CloudinaryService {
             System.out.println("Image uploaded from URL to Cloudinary: " + cloudinaryUrl);
             return cloudinaryUrl;
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println(" Failed to upload image from URL: " + e.getMessage());
 
             return imageUrl;
@@ -117,12 +115,10 @@ public class CloudinaryService {
                             "public_id", publicId,
                             "overwrite", true,
                             "resource_type", "image",
-                            "transformation", ObjectUtils.asMap(
-                                    "quality", "auto",
-                                    "fetch_format", "auto",
-                                    "width", 400,
-                                    "height", 400,
-                                    "crop", "fill"
+                            "eager", java.util.Arrays.asList(
+                                    new com.cloudinary.Transformation()
+                                            .width(400).height(400).crop("fill")
+                                            .quality("auto").fetchFormat("auto")
                             )
                     ));
 
@@ -130,7 +126,7 @@ public class CloudinaryService {
             System.out.println(" Image uploaded from URL to Cloudinary: " + cloudinaryUrl);
             return cloudinaryUrl;
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println(" Failed to upload image from URL: " + e.getMessage());
 
             return imageUrl;

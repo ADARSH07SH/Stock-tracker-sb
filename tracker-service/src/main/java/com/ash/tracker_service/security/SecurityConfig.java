@@ -40,7 +40,9 @@ public class SecurityConfig {
                         
                         .requestMatchers(
                             "/api/admin/missing-isin/**",
-                            "/api/admin/app-version"
+                            "/api/admin/app-version",
+                            "/api/admin/stats",
+                            "/api/admin/users/**"
                         ).hasRole("ADMIN")
                         
                         
@@ -59,6 +61,11 @@ public class SecurityConfig {
                                 "/api/version/**"
                         ).permitAll()
 
+                        
+                        .requestMatchers("/api/notifications/register").authenticated()
+                        .requestMatchers("/api/notifications/broadcast").hasRole("ADMIN")
+                        .requestMatchers("/api/notifications/send-to-user").hasRole("ADMIN")
+                        
                         
                         .anyRequest().authenticated()
                 )

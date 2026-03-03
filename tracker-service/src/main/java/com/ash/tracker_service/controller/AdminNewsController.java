@@ -38,6 +38,13 @@ public class AdminNewsController {
         return ResponseEntity.ok(adminNews);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getNewsById(@PathVariable String id) {
+        return newsRepository.findById(id)
+                .map(article -> ResponseEntity.ok((Object) article))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<NewsArticle> createNews(
             HttpServletRequest request,
