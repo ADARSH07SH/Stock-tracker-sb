@@ -29,6 +29,8 @@ public class User {
     
     private String profilePicture;
     
+    private String expoPushToken;
+    
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;

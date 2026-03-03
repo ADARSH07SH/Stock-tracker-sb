@@ -27,6 +27,7 @@ public class User {
     private String provider;
     private String profileImageUrl;
     private String name;
+    private String expoPushToken;
 
     private Set<Role> roles;
     private UserStatus status;

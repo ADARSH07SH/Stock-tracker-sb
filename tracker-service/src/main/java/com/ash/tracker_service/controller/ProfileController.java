@@ -53,11 +53,7 @@ public class ProfileController {
 
     @PostMapping("/sync-google")
     public ResponseEntity<String> syncGoogleProfile(@RequestBody Map<String, String> payload) {
-        System.out.println("========================================");
-        System.out.println("✓ Received Google profile sync request");
-        System.out.println("  Payload: " + payload);
-        System.out.println("========================================");
-        
+       
         String userId = payload.get("userId");
         String email = payload.get("email");
         String name = payload.get("name");
@@ -71,15 +67,33 @@ public class ProfileController {
 
         try {
             profileService.syncGoogleProfile(userId, email, name, profilePictureUrl);
-            System.out.println("✅ Profile sync completed successfully");
+            System.out.println(" Profile sync completed successfully");
             return ResponseEntity.ok("Profile synced successfully");
         } catch (Exception e) {
-            System.err.println("✗ Error during profile sync: " + e.getMessage());
+            System.err.println(" Error during profile sync: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to sync profile: " + e.getMessage());
         }
     }
 
-
+    @PostMapping("/push-token")
+    public ResponseEntity<String> savePushToken(
+            HttpServletRequest request,
+            @RequestBody Map<String, String> payload) {
+        
+        String userId = (String) request.getAttribute("userId");
+        String token = payload.get("token");
+        
+        if (token == null || token.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Token is required");
+        }
+        
+        try {
+            profileService.savePushToken(userId, token);
+            return ResponseEntity.ok("Push token saved successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to save push token: " + e.getMessage());
+        }
+    }
 
 }

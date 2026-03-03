@@ -37,9 +37,13 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        
                         .requestMatchers(
-                            "/api/admin/**"
+                            "/api/admin/missing-isin/**",
+                            "/api/admin/app-version"
                         ).hasRole("ADMIN")
+                        
+                        
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -51,9 +55,11 @@ public class SecurityConfig {
                                 "/api/stock-news",
                                 "/api/stock-news/**",
                                 "/api/stock-view/**",
-                                "/api/profile/sync-google"
+                                "/api/profile/sync-google",
+                                "/api/version/**"
                         ).permitAll()
 
+                        
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

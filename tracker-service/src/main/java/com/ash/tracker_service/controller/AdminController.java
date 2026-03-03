@@ -5,6 +5,7 @@ import com.ash.tracker_service.entity.AppVersion;
 import com.ash.tracker_service.entity.MissingIsin;
 import com.ash.tracker_service.service.AppVersionService;
 import com.ash.tracker_service.service.MissingIsinService;
+import com.ash.tracker_service.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.formula.functions.T;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ public class AdminController {
 
     private final MissingIsinService missingIsinService;
     private final AppVersionService appVersionService;
+    private final NotificationService notificationService;
 
     @GetMapping("/missing-isin")
     public ResponseEntity<List<MissingIsin>> getAllMissingIsin(@RequestParam(required = false) String status) {
@@ -70,6 +72,14 @@ public class AdminController {
         boolean forceUpdate = request.get("forceUpdate") != null ? (boolean) request.get("forceUpdate") : false;
         
         AppVersion updated = appVersionService.updateVersion(version, downloadUrl, releaseNotes, forceUpdate);
+        
+
+        notificationService.notifyAllUsers(
+            "New Update Available \uD83D\uDE80",
+            "Version " + version + " is now available. " + releaseNotes,
+            Map.of("type", "VERSION_UPDATE", "version", version)
+        );
+        
         return ResponseEntity.ok(updated);
     }
 }

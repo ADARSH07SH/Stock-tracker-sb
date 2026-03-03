@@ -25,6 +25,7 @@ public class NotionNewsService {
 
     private final RestTemplate restTemplate;
     private final NewsRepository newsRepository;
+    private final NotificationService notificationService;
 
     @Value("${notion.api-key}")
     private String notionApiKey;
@@ -137,12 +138,12 @@ public class NotionNewsService {
                         title = (String) titleList.get(0).get("plain_text");
                     }
                 } else {
-                    log.warn("⚠️ No Title or Name property found in Notion page. Available properties: {}", properties.keySet());
+                    log.warn(" No Title or Name property found in Notion page. Available properties: {}", properties.keySet());
                 }
             } catch (Exception e) {
                 log.warn("Error extracting Title: {}", e.getMessage());
             }
-            log.info("✅ Extracted Title: '{}'", title);
+            log.info(" Extracted Title: '{}'", title);
 
             
             Instant articleDate = Instant.now();
@@ -189,23 +190,23 @@ public class NotionNewsService {
                         summary = (String) richText.get(0).get("plain_text");
                     }
                 } else {
-                    log.warn("⚠️ No Summary/Text/Description/Content property found. Available properties: {}", properties.keySet());
+                    log.warn(" No Summary/Text/Description/Content property found. Available properties: {}", properties.keySet());
                 }
             } catch (Exception e) {
                 log.warn("Error extracting Summary: {}", e.getMessage());
             }
-            log.info("✅ Extracted Summary: '{}' (length: {})", 
+            log.info("Extracted Summary: '{}' (length: {})", 
                 summary.length() > 50 ? summary.substring(0, 50) + "..." : summary, 
                 summary.length());
 
 
             String body = summary;
             if (summary == null || summary.isEmpty()) {
-                log.info("📄 Summary is empty, fetching page content blocks...");
+                log.info(" Summary is empty, fetching page content blocks...");
                 try {
                     body = fetchPageContent(notionId);
                     if (body != null && !body.isEmpty()) {
-                        log.info("✅ Fetched page content: '{}' (length: {})", 
+                        log.info(" Fetched page content: '{}' (length: {})", 
                             body.length() > 50 ? body.substring(0, 50) + "..." : body, 
                             body.length());
 
@@ -213,10 +214,10 @@ public class NotionNewsService {
                             summary = body.length() > 200 ? body.substring(0, 200) + "..." : body;
                         }
                     } else {
-                        log.warn("⚠️ No content found in page blocks");
+                        log.warn(" No content found in page blocks");
                     }
                 } catch (Exception e) {
-                    log.error("❌ Failed to fetch page content: {}", e.getMessage());
+                    log.error(" Failed to fetch page content: {}", e.getMessage());
                 }
             } else {
                 body = summary;
@@ -262,22 +263,22 @@ public class NotionNewsService {
             } catch (Exception e) {
                 log.warn("Error extracting Type: {}", e.getMessage());
             }
-            log.info("✅ Extracted Type: '{}'", newsType);
+            log.info(" Extracted Type: '{}'", newsType);
 
 
             String sourceType = "NOTION_DAILY";
             if (newsType != null && newsType.equalsIgnoreCase("Shashank")) {
                 sourceType = "NOTION_SHASHANK";
-                log.info("✅ Processing Shashank type news: '{}'", title);
+                log.info(" Processing Shashank type news: '{}'", title);
             } else {
-                log.info("✅ Processing Daily-News type: '{}'", title);
+                log.info(" Processing Daily-News type: '{}'", title);
             }
 
 
             try {
                 long deletedCount = newsRepository.deleteBySourceType(sourceType);
                 if (deletedCount > 0) {
-                    log.info("🗑️  Deleted {} old {} articles", deletedCount, sourceType);
+                    log.info("  Deleted {} old {} articles", deletedCount, sourceType);
                 }
             } catch (Exception e) {
                 log.warn("Error deleting old articles: {}", e.getMessage());
@@ -296,11 +297,18 @@ public class NotionNewsService {
                     .build();
 
             newsRepository.save(article);
-            log.info("✅ Saved {} article: {}", sourceType, title);
+            log.info(" Saved {} article: {}", sourceType, title);
+
+
+            notificationService.notifyAllUsers(
+                "Daily Stock News \uD83D\uDCC8",
+                title,
+                Map.of("type", "NOTION_NEWS", "articleId", article.getId())
+            );
 
             return true;
         } catch (Exception e) {
-            log.error("❌ Error processing Notion page: {}", e.getMessage(), e);
+            log.error(" Error processing Notion page: {}", e.getMessage(), e);
             return false;
         }
     }
@@ -308,7 +316,7 @@ public class NotionNewsService {
     private String fetchPageContent(String pageId) {
         try {
             String url = "https://api.notion.com/v1/blocks/" + pageId + "/children";
-            log.info("📄 Fetching page content from: {}", url);
+            log.info(" Fetching page content from: {}", url);
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + notionApiKey);
@@ -323,7 +331,7 @@ public class NotionNewsService {
                 List<Map<String, Object>> blocks = (List<Map<String, Object>>) bodyMap.get("results");
                 
                 if (blocks != null && !blocks.isEmpty()) {
-                    log.info("📄 Found {} blocks in page", blocks.size());
+                    log.info(" Found {} blocks in page", blocks.size());
                     StringBuilder content = new StringBuilder();
                     
                     for (Map<String, Object> block : blocks) {
@@ -348,14 +356,14 @@ public class NotionNewsService {
                     }
                     
                     String result = content.toString().trim();
-                    log.info("✅ Extracted {} characters of content", result.length());
+                    log.info(" Extracted {} characters of content", result.length());
                     return result;
                 } else {
-                    log.warn("⚠️ No blocks found in page");
+                    log.warn(" No blocks found in page");
                 }
             }
         } catch (Exception e) {
-            log.error("❌ Error fetching page content: {}", e.getMessage(), e);
+            log.error(" Error fetching page content: {}", e.getMessage(), e);
         }
         return "";
     }

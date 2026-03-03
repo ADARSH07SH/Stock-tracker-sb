@@ -3,6 +3,7 @@ package com.ash.tracker_service.controller;
 import com.ash.tracker_service.entity.NewsArticle;
 import com.ash.tracker_service.repository.NewsRepository;
 import com.ash.tracker_service.service.CloudinaryService;
+import com.ash.tracker_service.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +21,14 @@ public class AdminNewsController {
 
     private final NewsRepository newsRepository;
     private final CloudinaryService cloudinaryService;
+    private final NotificationService notificationService;
     
     public AdminNewsController(
             NewsRepository newsRepository,
+            NotificationService notificationService,
             @org.springframework.beans.factory.annotation.Autowired(required = false) CloudinaryService cloudinaryService) {
         this.newsRepository = newsRepository;
+        this.notificationService = notificationService;
         this.cloudinaryService = cloudinaryService;
     }
 
@@ -57,7 +61,14 @@ public class AdminNewsController {
                 .build();
         
         newsRepository.save(article);
-        log.info("✅ Admin news created: {}", article.getId());
+        log.info(" Admin news created: {}", article.getId());
+        
+
+        notificationService.notifyAllUsers(
+            "New Article \uD83D\uDCF0",
+            article.getTitle(),
+            Map.of("type", "ADMIN_NEWS", "articleId", article.getId())
+        );
         
         return ResponseEntity.ok(article);
     }
@@ -79,7 +90,7 @@ public class AdminNewsController {
         article.setUpdatedAt(Instant.now());
         newsRepository.save(article);
         
-        log.info("✅ Admin news updated: {}", id);
+        log.info(" Admin news updated: {}", id);
         return ResponseEntity.ok(article);
     }
 
@@ -92,14 +103,14 @@ public class AdminNewsController {
         if (cloudinaryService != null && article.getImageUrl() != null && !article.getImageUrl().isEmpty()) {
             try {
                 cloudinaryService.deleteImage(article.getImageUrl());
-                log.info("🗑️  Deleted image from Cloudinary");
+                log.info("  Deleted image from Cloudinary");
             } catch (Exception e) {
-                log.warn("⚠️  Failed to delete image: {}", e.getMessage());
+                log.warn("  Failed to delete image: {}", e.getMessage());
             }
         }
         
         newsRepository.deleteById(id);
-        log.info("✅ Admin news deleted: {}", id);
+        log.info(" Admin news deleted: {}", id);
         
         return ResponseEntity.ok(Map.of("message", "News article deleted successfully"));
     }
@@ -107,17 +118,17 @@ public class AdminNewsController {
     @PostMapping("/upload-image")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
         if (cloudinaryService == null) {
-            log.error("❌ CloudinaryService not available");
+            log.error(" CloudinaryService not available");
             return ResponseEntity.status(500).body(Map.of("error", "Image upload service not configured"));
         }
         
         try {
-            log.info("📤 Uploading news image...");
+            log.info(" Uploading news image...");
             String imageUrl = cloudinaryService.uploadImage(file, "news_images");
-            log.info("✅ News image uploaded: {}", imageUrl);
+            log.info(" News image uploaded: {}", imageUrl);
             return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
         } catch (Exception e) {
-            log.error("❌ Failed to upload news image: {}", e.getMessage());
+            log.error("Failed to upload news image: {}", e.getMessage());
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }

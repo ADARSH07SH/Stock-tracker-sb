@@ -29,6 +29,8 @@ public class TrackerUser {
     private String bio;
     private String panMasked;
 
+    private String expoPushToken;
+
     private Instant createdAt;
     private Instant updatedAt;
 }

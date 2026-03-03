@@ -14,5 +14,7 @@ public interface ProfileService {
     void syncGoogleProfile(String userId, String email, String name, String profileImageUrl);
     
     String uploadProfileImage(String userId, org.springframework.web.multipart.MultipartFile file) throws java.io.IOException;
+
+    void savePushToken(String userId, String token);
 }
 
