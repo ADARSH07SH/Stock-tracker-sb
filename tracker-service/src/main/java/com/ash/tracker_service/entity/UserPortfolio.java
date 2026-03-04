@@ -29,5 +29,7 @@ public class UserPortfolio {
     private double totalInvestment;
     private double totalCurrentValue;
 
+    private boolean isDemoData;
+
     private Instant updatedAt;
 }

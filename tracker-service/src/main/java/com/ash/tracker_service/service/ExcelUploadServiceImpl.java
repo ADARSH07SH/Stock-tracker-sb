@@ -30,6 +30,12 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
 
         List<ExcelStockRowDTO> rows = ExcelParser.parse(file);
 
+        // Clear demo stocks on first real upload so they don't appear as sold
+        if (portfolio.isDemoData()) {
+            portfolio.setStocks(new ArrayList<>());
+            portfolio.setDemoData(false);
+            System.out.println("Cleared demo portfolio data for account: " + accountId);
+        }
         
         ExcelUploadResponseDTO response = analyzeAndUpdate(portfolio, rows);
 

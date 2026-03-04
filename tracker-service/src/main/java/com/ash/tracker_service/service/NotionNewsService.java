@@ -26,6 +26,7 @@ public class NotionNewsService {
     private final RestTemplate restTemplate;
     private final NewsRepository newsRepository;
     private final NotificationService notificationService;
+    private final SystemLogService systemLogService;
 
     @Value("${notion.api-key}")
     private String notionApiKey;
@@ -274,6 +275,18 @@ public class NotionNewsService {
                 log.info(" Processing Daily-News type: '{}'", title);
             }
 
+            try {
+                List<NewsArticle> existing = newsRepository.findBySourceTypeAndPublishedTrueOrderByCreatedAtDesc(sourceType);
+                if (!existing.isEmpty()) {
+                    NewsArticle latest = existing.get(0);
+                    if (latest.getTitle() != null && latest.getTitle().equals(title) && latest.getBody() != null && latest.getBody().equals(body)) {
+                        log.info(" Article '{}' is already up to date. Skipping DB write and notification.", title);
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error checking existing articles: {}", e.getMessage());
+            }
 
             try {
                 long deletedCount = newsRepository.deleteBySourceType(sourceType);
@@ -305,6 +318,8 @@ public class NotionNewsService {
                 title,
                 Map.of("type", "NOTION_NEWS", "articleId", article.getId())
             );
+
+            systemLogService.logSystemEvent("NOTION_SYNC_NOTIFICATION", title, "Sent notification to all users for new Notion article: " + title);
 
             return true;
         } catch (Exception e) {

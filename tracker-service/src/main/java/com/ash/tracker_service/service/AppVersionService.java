@@ -16,14 +16,18 @@ public class AppVersionService {
     
     private final AppVersionRepository appVersionRepository;
     
-    private static final String DEFAULT_DOWNLOAD_URL = "https://github.com/ADARSH07SH/Stock-tracker-sb/releases/latest";
+    private static final String GITHUB_RELEASE_BASE = "https://github.com/ADARSH07SH/Stock-tracker-sb/releases/download/";
+    
+    private static String buildDownloadUrl(String version) {
+        return GITHUB_RELEASE_BASE + version + "/app-release.apk";
+    }
     
     public AppVersion getLatestVersion() {
         return appVersionRepository.findTopByOrderByCreatedAtDesc()
                 .orElseGet(() -> {
                     AppVersion defaultVersion = new AppVersion(
-                        "3.0.1",
-                        DEFAULT_DOWNLOAD_URL,
+                        "3.1.0",
+                        buildDownloadUrl("3.1.0"),
                         "Initial release",
                         false
                     );
@@ -34,13 +38,13 @@ public class AppVersionService {
     public AppVersion updateVersion(String version, String downloadUrl, String releaseNotes, boolean forceUpdate) {
         AppVersion appVersion = new AppVersion();
         appVersion.setVersion(version);
-        appVersion.setDownloadUrl(downloadUrl != null && !downloadUrl.isEmpty() ? downloadUrl : DEFAULT_DOWNLOAD_URL);
+        appVersion.setDownloadUrl(downloadUrl != null && !downloadUrl.isEmpty() ? downloadUrl : buildDownloadUrl(version));
         appVersion.setReleaseNotes(releaseNotes);
         appVersion.setForceUpdate(forceUpdate);
         appVersion.setCreatedAt(LocalDateTime.now());
         appVersion.setUpdatedAt(LocalDateTime.now());
         
-        log.info("Creating new app version: {}", version);
+        log.info("Creating new app version: {} with download URL: {}", version, appVersion.getDownloadUrl());
         return appVersionRepository.save(appVersion);
     }
 }

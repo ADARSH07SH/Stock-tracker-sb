@@ -5,12 +5,17 @@ import com.ash.tracker_service.entity.AppVersion;
 import com.ash.tracker_service.entity.MissingIsin;
 import com.ash.tracker_service.entity.TrackerUser;
 import com.ash.tracker_service.repository.TrackerUserRepository;
+import com.ash.tracker_service.repository.UserPortfolioRepository;
+import com.ash.tracker_service.repository.SoldStockRepository;
+import com.ash.tracker_service.repository.AccountRepository;
 import com.ash.tracker_service.service.AppVersionService;
 import com.ash.tracker_service.service.MissingIsinService;
 import com.ash.tracker_service.service.NotificationService;
+import com.ash.tracker_service.service.SystemLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +29,18 @@ public class AdminController {
     private final AppVersionService appVersionService;
     private final NotificationService notificationService;
     private final TrackerUserRepository trackerUserRepository;
+    private final UserPortfolioRepository userPortfolioRepository;
+    private final SoldStockRepository soldStockRepository;
+    private final AccountRepository accountRepository;
+    private final SystemLogService systemLogService;
+
+    @GetMapping("/system-logs")
+    public ResponseEntity<Map<String, Object>> getSystemLogs(@RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", systemLogService.getRecentLogs(limit)
+        ));
+    }
 
     @GetMapping("/missing-isin")
     public ResponseEntity<List<MissingIsin>> getAllMissingIsin(@RequestParam(required = false) String status) {
@@ -106,6 +123,27 @@ public class AdminController {
         return ResponseEntity.ok(Map.of(
             "success", true,
             "data", users
+        ));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    @Transactional
+    public ResponseEntity<?> deleteUser(@PathVariable String userId) {
+        if (!trackerUserRepository.existsByUserId(userId)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "User not found"
+            ));
+        }
+
+        trackerUserRepository.deleteByUserId(userId);
+        userPortfolioRepository.deleteByUserId(userId);
+        accountRepository.deleteByUserId(userId);
+        soldStockRepository.deleteByUserId(userId);
+
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "User deleted successfully"
         ));
     }
 }

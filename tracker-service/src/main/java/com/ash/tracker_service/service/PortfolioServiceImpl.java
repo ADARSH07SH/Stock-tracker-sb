@@ -116,6 +116,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .userId(userId)
                 .accountId(accountId)
                 .accountName(portfolio.getAccountName())
+                .isDemoData(portfolio.isDemoData())
                 .stocks(stockResponses)
                 .soldStocks(soldResponses)
                 .totalInvestment(portfolio.getTotalInvestment())

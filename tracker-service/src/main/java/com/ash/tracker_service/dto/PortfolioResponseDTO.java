@@ -13,6 +13,7 @@ public class PortfolioResponseDTO {
     private String userId;
     private String accountId;
     private String accountName;
+    private boolean isDemoData;
 
     private List<StockHoldingResponseDTO> stocks;
     private List<SoldStockResponseDTO> soldStocks;

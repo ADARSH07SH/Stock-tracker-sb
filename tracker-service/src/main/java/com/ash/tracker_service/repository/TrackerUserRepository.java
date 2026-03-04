@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface TrackerUserRepository extends MongoRepository<TrackerUser, String> {
     Optional<TrackerUser> findByUserId(String userId);
     boolean existsByUserId(String userId);
+    void deleteByUserId(String userId);
 }

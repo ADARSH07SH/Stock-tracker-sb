@@ -21,7 +21,7 @@ public class VersionController {
     private final RestTemplate restTemplate;
     private final AppVersionService appVersionService;
 
-    @Value("${app.version:3.0.1}")
+    @Value("${app.version:3.1.0}")
     private String currentVersion;
 
     @Value("${app.github.repo:ADARSH07SH/Stock-tracker-sb}")
@@ -35,14 +35,18 @@ public class VersionController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<Map<String, Object>> checkForUpdates() {
+    public ResponseEntity<Map<String, Object>> checkForUpdates(
+            @RequestParam(required = false) String currentVersion) {
         try {
+            String clientVersion = (currentVersion != null && !currentVersion.isEmpty()) 
+                ? currentVersion : this.currentVersion;
+            
             AppVersion latestVersion = appVersionService.getLatestVersion();
             
-            boolean updateAvailable = isNewerVersion(currentVersion, latestVersion.getVersion());
+            boolean updateAvailable = isNewerVersion(clientVersion, latestVersion.getVersion());
             
             Map<String, Object> response = new HashMap<>();
-            response.put("currentVersion", currentVersion);
+            response.put("currentVersion", clientVersion);
             response.put("latestVersion", latestVersion.getVersion());
             response.put("updateAvailable", updateAvailable);
             response.put("downloadUrl", latestVersion.getDownloadUrl());
@@ -50,15 +54,17 @@ public class VersionController {
             response.put("forceUpdate", latestVersion.isForceUpdate());
             response.put("publishedAt", latestVersion.getCreatedAt());
 
-            log.info(" Update check complete. Current: {}, Latest: {}, Update available: {}", 
-                currentVersion, latestVersion.getVersion(), updateAvailable);
+            log.info(" Update check complete. Client: {}, Latest: {}, Update available: {}", 
+                clientVersion, latestVersion.getVersion(), updateAvailable);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             log.error(" Failed to check for updates: {}", e.getMessage());
+            String clientVersion = (currentVersion != null && !currentVersion.isEmpty()) 
+                ? currentVersion : this.currentVersion;
             return ResponseEntity.ok(Map.of(
-                "currentVersion", currentVersion,
+                "currentVersion", clientVersion,
                 "updateAvailable", false,
                 "error", "Failed to check for updates"
             ));

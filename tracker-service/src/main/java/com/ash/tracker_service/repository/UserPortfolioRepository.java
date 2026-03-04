@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface UserPortfolioRepository extends MongoRepository<UserPortfolio, String> {
     Optional<UserPortfolio> findByUserIdAndAccountId(String userId, String accountId);
+    void deleteByUserId(String userId);
     Optional <List<UserPortfolio>> findByUserId(String userId);
 
 

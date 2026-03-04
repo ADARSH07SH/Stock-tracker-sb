@@ -2,25 +2,40 @@ package com.ash.tracker_service.service;
 
 import com.ash.tracker_service.dto.ProfileResponseDTO;
 import com.ash.tracker_service.dto.ProfileUpdateRequestDTO;
+import com.ash.tracker_service.entity.Account;
+import com.ash.tracker_service.entity.StockHolding;
 import com.ash.tracker_service.entity.TrackerUser;
 import com.ash.tracker_service.entity.UserPortfolio;
 import com.ash.tracker_service.exception.InvalidRequestException;
 import com.ash.tracker_service.mapper.ProfileMapper;
+import com.ash.tracker_service.repository.AccountRepository;
 import com.ash.tracker_service.repository.TrackerUserRepository;
 import com.ash.tracker_service.repository.UserPortfolioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProfileServiceImpl implements ProfileService {
 
     private final TrackerUserRepository trackerUserRepository;
     private final UserPortfolioRepository userPortfolioRepository;
+    private final AccountRepository accountRepository;
     private final CloudinaryService cloudinaryService;
+    private final MongoTemplate mongoTemplate;
+
+    private static final String DEMO_USER_ID = "demo26320056F31I";
+    private static final String DEMO_ACCOUNT_ID = "abcdefabcdefabcdefabcdea";
 
     @Override
     public ProfileResponseDTO getProfile(String userId,String email) {
@@ -49,14 +64,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         trackerUserRepository.save(user);
 
-        UserPortfolio portfolio = UserPortfolio.builder()
-                .userId(userId)
-                .totalInvestment(0)
-                .totalCurrentValue(0)
-                .updatedAt(Instant.now())
-                .build();
-
-        userPortfolioRepository.save(portfolio);
+        seedDemoPortfolio(userId);
     }
 
     public void syncGoogleProfile(String userId, String email, String name, String googlePictureUrl) {
@@ -71,13 +79,7 @@ public class ProfileServiceImpl implements ProfileService {
                     .createdAt(Instant.now())
                     .build();
             
-            UserPortfolio portfolio = UserPortfolio.builder()
-                    .userId(userId)
-                    .totalInvestment(0)
-                    .totalCurrentValue(0)
-                    .updatedAt(Instant.now())
-                    .build();
-            userPortfolioRepository.save(portfolio);
+            seedDemoPortfolio(userId);
         } else {
             user = optional.get();
             if (name != null && !name.isEmpty()) {
@@ -104,6 +106,65 @@ public class ProfileServiceImpl implements ProfileService {
 
         user.setUpdatedAt(Instant.now());
         trackerUserRepository.save(user);
+    }
+
+    private void seedDemoPortfolio(String userId) {
+        try {
+            Account account = Account.builder()
+                    .userId(userId)
+                    .accountName("My Portfolio")
+                    .createdAt(Instant.now())
+                    .build();
+            Account savedAccount = accountRepository.save(account);
+
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(DEMO_USER_ID)
+                    .and("accountId").is(DEMO_ACCOUNT_ID));
+            
+            UserPortfolio demo = mongoTemplate.findOne(query, UserPortfolio.class, "demo-stock-collection");
+
+            List<StockHolding> demoStocks = new ArrayList<>();
+            double demoInvestment = 0;
+
+            if (demo != null) {
+                if (demo.getStocks() != null) {
+                    for (StockHolding stock : demo.getStocks()) {
+                        demoStocks.add(StockHolding.builder()
+                                .stockName(stock.getStockName())
+                                .isin(stock.getIsin())
+                                .quantity(stock.getQuantity())
+                                .averageBuyPrice(stock.getAverageBuyPrice())
+                                .buyValue(stock.getBuyValue())
+                                .lastUpdated(Instant.now())
+                                .build());
+                    }
+                }
+                demoInvestment = demo.getTotalInvestment();
+            }
+
+            UserPortfolio portfolio = UserPortfolio.builder()
+                    .userId(userId)
+                    .accountId(savedAccount.getId())
+                    .accountName("My Portfolio")
+                    .stocks(demoStocks)
+                    .totalInvestment(demoInvestment)
+                    .totalCurrentValue(0)
+                    .isDemoData(!demoStocks.isEmpty())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            userPortfolioRepository.save(portfolio);
+            log.info("Seeded demo portfolio for new user: {} with {} stocks", userId, demoStocks.size());
+        } catch (Exception e) {
+            log.error("Failed to seed demo portfolio for user: {}. Creating empty portfolio.", userId, e);
+            UserPortfolio portfolio = UserPortfolio.builder()
+                    .userId(userId)
+                    .totalInvestment(0)
+                    .totalCurrentValue(0)
+                    .updatedAt(Instant.now())
+                    .build();
+            userPortfolioRepository.save(portfolio);
+        }
     }
 
     @Override
@@ -150,3 +211,4 @@ public class ProfileServiceImpl implements ProfileService {
         trackerUserRepository.save(user);
     }
 }
+

@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface SoldStockRepository extends MongoRepository<SoldStock,String> {
     List<SoldStock> findByUserIdAndAccountId(String userId, String accountId);
+    void deleteByUserId(String userId);
     List<SoldStock> findByUserId(String userId);
 
 

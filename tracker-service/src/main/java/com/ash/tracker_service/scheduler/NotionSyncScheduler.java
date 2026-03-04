@@ -19,11 +19,10 @@ public class NotionSyncScheduler {
     @Scheduled(cron = "0 */30 * * * *")
     public void syncNotionNews() {
         LocalTime now = LocalTime.now();
-        LocalTime startTime = LocalTime.of(17, 0);
-        LocalTime endTime = LocalTime.of(23, 59);
 
+        boolean isWithinWindow = now.isAfter(LocalTime.of(17, 59)) || now.isBefore(LocalTime.of(1, 1));
 
-        if (now.isAfter(startTime) && now.isBefore(endTime)) {
+        if (isWithinWindow) {
             log.info("🔄 Auto-syncing Notion news at {}", now);
             try {
                 var result = notionNewsService.syncNotionNews();
