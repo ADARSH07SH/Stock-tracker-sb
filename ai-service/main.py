@@ -9,6 +9,7 @@ from openai import OpenAI
 
 from utils import extract_user_id, fetch_portfolio
 from rag_engine import extract_entities, search_stock_links, refine_stock_selection, fetch_stock_news_by_id, build_prompt
+from config import GROQ_API_KEY, GROQ_FALLBACK_MODELS
 
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -34,6 +35,10 @@ app.add_middleware(
 genai_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 MODELS = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-3-flash", "gemini-2.5-flash-lite"]
 
+groq_client = OpenAI(
+    api_key=GROQ_API_KEY or "your_groq_api_key",
+    base_url="https://api.groq.com/openai/v1",
+)
 
 openrouter_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
@@ -141,6 +146,27 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
             }
         except Exception as e:
             log_debug(f" -> [WARNING] {model} failed: {e}")
+            continue
+
+    log_debug(" -> [WARNING] All Gemini models failed. Trying Groq fallback models...")
+    for model in GROQ_FALLBACK_MODELS:
+        try:
+            log_debug(f" -> Attempting generation with Groq model {model}...")
+            response = groq_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "user", "content": context}
+                ]
+            )
+            log_debug(f" -> [SUCCESS] Groq Response delivered using {model}.")
+            log_debug("="*80)
+            return {
+                "answer": response.choices[0].message.content,
+                "model": model,
+                "researched_stocks": list(news_context.keys())
+            }
+        except Exception as e:
+            log_debug(f" -> [WARNING] Groq {model} failed: {e}")
             continue
 
     log_debug(" -> [CRITICAL] All synthesis models failed.")

@@ -13,7 +13,7 @@ const getStockLinks = async (req, res, next) => {
         (link.spreadsheetId && link.spreadsheetId.toLowerCase().includes(query))
       );
     }
-    console.log(data0)
+
     res.json({ status: 'success', data: links });
   } catch (error) {
     next(error);

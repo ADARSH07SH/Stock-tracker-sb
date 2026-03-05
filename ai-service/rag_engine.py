@@ -4,7 +4,8 @@ import json
 import urllib.parse
 from dotenv import load_dotenv
 from google import genai
-from config import NEWS_SERVICE_URL, NEWS_API_KEY, GEMINI_API_KEY
+from openai import OpenAI
+from config import NEWS_SERVICE_URL, NEWS_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, GROQ_FALLBACK_MODELS
 
 load_dotenv()
 
@@ -14,6 +15,7 @@ def log_debug(message):
         f.write(message + "\n")
 
 _genai_client = None
+_groq_client = None
 
 def get_genai_client():
     global _genai_client
@@ -22,6 +24,15 @@ def get_genai_client():
             raise ValueError("GEMINI_API_KEY not found in environment")
         _genai_client = genai.Client(api_key=GEMINI_API_KEY)
     return _genai_client
+
+def get_groq_client():
+    global _groq_client
+    if _groq_client is None:
+        _groq_client = OpenAI(
+            api_key=GROQ_API_KEY or "your_groq_api_key",
+            base_url="https://api.groq.com/openai/v1",
+        )
+    return _groq_client
 
 SYSTEM_INSTRUCTION = """
 You are a top-tier financial analyst specializing in the Indian stock market.
@@ -32,6 +43,7 @@ Keep your tone professional and your answers extremely brief (avoid long introdu
 
 async def extract_entities(prompt):
     client = get_genai_client()
+    groq_client = get_groq_client()
     extraction_prompt = f"""
     Analyze the following user query and extract:
     1. A list of specific stock names or company names to search for in our database.
@@ -56,6 +68,24 @@ async def extract_entities(prompt):
         except Exception as e:
             log_debug(f"  - [WARNING] Planning with {model_name} failed: {e}")
             continue
+            
+    log_debug("  - [WARNING] All Gemini planning models failed. Falling back to Groq models...")
+    for model_name in GROQ_FALLBACK_MODELS:
+        try:
+            log_debug(f"  - [STEP 1] Generating Execution Plan with Groq model {model_name}")
+            response = groq_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "user", "content": extraction_prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            plan = json.loads(response.choices[0].message.content)
+            return plan
+        except Exception as e:
+            log_debug(f"  - [WARNING] Planning with Groq model {model_name} failed: {e}")
+            continue
+
     log_debug("  - [ERROR] All planning models failed.")
     return {"stocks_to_search": [], "intent": "general_chat", "needs_portfolio": False, "planning_reasoning": "Fallback to safety."}
 
@@ -81,6 +111,7 @@ async def refine_stock_selection(matched_links, original_prompt):
     if not matched_links:
         return None
     client = get_genai_client()
+    groq_client = get_groq_client()
     refine_prompt = f"""
     Based on the user's original query: "{original_prompt}"
     Select the MOST relevant stock from the following candidate list from our database:
@@ -101,7 +132,28 @@ async def refine_stock_selection(matched_links, original_prompt):
                 return link
         return None
     except Exception as e:
-        print(f"  - [ERROR] Refinement failed: {e}")
+        print(f"  - [WARNING] Gemini Refinement failed: {e}. Trying Groq fallback...")
+        
+        for model_name in GROQ_FALLBACK_MODELS:
+            try:
+                response = groq_client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "user", "content": refine_prompt}
+                    ],
+                    response_format={"type": "json_object"}
+                )
+                result = json.loads(response.choices[0].message.content)
+                selected_name = result.get("name")
+                for link in matched_links:
+                    if link.get("name") == selected_name:
+                        return link
+                return None
+            except Exception as e2:
+                print(f"  - [WARNING] Groq ({model_name}) Refinement failed: {e2}")
+                continue
+                
+        print(f"  - [ERROR] All refinement models failed.")
         return None
 
 async def fetch_stock_news_by_id(spreadsheet_id, gid=None):
