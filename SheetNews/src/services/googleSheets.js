@@ -46,11 +46,12 @@ class GoogleSheetsService {
     return match ? match[1] : null;
   }
 
-  async getStockScoreSheet(limit = 15) {
+  async getStockScoreSheet(limit = null) {
     await this.initialize();
 
     try {
-      const endRow = limit + 1;
+      // If no limit, fetch all rows (up to 1000)
+      const endRow = limit ? limit + 1 : 1000;
 
       const response = await this.sheets.spreadsheets.get({
         spreadsheetId: config.google.spreadsheetId,
@@ -69,7 +70,7 @@ class GoogleSheetsService {
 
       for (let i = 1; i < rows.length; i++) {
 
-        if (stockLinks.length >= limit) break;
+        if (limit && stockLinks.length >= limit) break;
 
         const row = rows[i];
         if (!row.values || !row.values[1]) continue;
@@ -238,23 +239,43 @@ class GoogleSheetsService {
     await this.initialize();
 
     try {
+      console.log('📰 [getStockNews] Looking for stock:', stockName);
+      // Load ALL stocks, not just first 15
       const stockLinks = await this.getStockScoreSheet();
+      console.log('📰 [getStockNews] Total stocks in sheet:', stockLinks.length);
+      
       const target = this.normalizeName(stockName);
+      console.log('📰 [getStockNews] Normalized target:', target);
+
+      // Log first few stock names for comparison
+      console.log('📰 [getStockNews] First 5 stocks:', stockLinks.slice(0, 5).map(s => ({
+        original: s.name,
+        normalized: this.normalizeName(s.name)
+      })));
 
       let stock = stockLinks.find(s => this.normalizeName(s.name) === target);
+      console.log('📰 [getStockNews] Exact match found:', stock ? stock.name : 'No');
 
       if (!stock) {
         stock = stockLinks.find(s => {
           const current = this.normalizeName(s.name);
           return target.length > 2 && (current.includes(target) || target.includes(current));
         });
+        console.log('📰 [getStockNews] Partial match found:', stock ? stock.name : 'No');
       }
 
       if (!stock) {
+        console.error('❌ [getStockNews] Stock not found:', stockName);
+        console.error('❌ [getStockNews] Available stocks:', stockLinks.map(s => s.name).join(', '));
         throw new AppError(`Stock not found: ${stockName}`, 404);
       }
 
+      console.log('📰 [getStockNews] Found stock:', stock.name);
+      console.log('📰 [getStockNews] Spreadsheet ID:', stock.spreadsheetId);
+      console.log('📰 [getStockNews] GID:', stock.gid);
+
       const data = await this.getSpreadsheetData(stock.spreadsheetId, stock.gid);
+      console.log('📰 [getStockNews] Data rows fetched:', data.length);
 
       return {
         stockName: stock.name,
@@ -262,6 +283,7 @@ class GoogleSheetsService {
         data: data
       };
     } catch (error) {
+      console.error('❌ [getStockNews] Error:', error.message);
       if (error instanceof AppError) {
         throw error;
       }

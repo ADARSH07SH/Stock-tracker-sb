@@ -248,6 +248,72 @@
       overflow: hidden;
     }
 
+    .search-results-section {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .section-title {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    .search-result-item {
+      background: rgba(204, 255, 0, 0.05);
+      border: 1px solid rgba(204, 255, 0, 0.2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .search-result-item:hover {
+      background: rgba(204, 255, 0, 0.1);
+      border-color: var(--primary);
+    }
+
+    .search-result-item .result-headline {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .search-result-item .result-summary {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      display: none;
+      transition: color 0.2s ease;
+    }
+
+    .clear-search-btn:hover {
+      color: var(--primary);
+    }
+
+    .clear-search-btn.visible {
+      display: block;
+    }
+
     .loading-spinner {
       width: 40px;
       height: 40px;
@@ -304,8 +370,11 @@
           <label
             style="display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">API
             Key</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="password" id="apiKey" placeholder="secret123" value="secret123" style="flex: 1;">
+          <div style="display: flex; gap: 8px; position: relative;">
+            <input type="password" id="apiKey" placeholder="secret123" value="secret123" style="flex: 1; padding-right: 40px;">
+            <button id="toggleApiKeyBtn"
+              style="position: absolute; right: 80px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px 8px; font-size: 16px; transition: color 0.2s;"
+              title="Toggle visibility">👁️</button>
             <button id="refreshBtn"
               style="background: var(--primary); color: var(--bg-dark); border: none; border-radius: 10px; padding: 0 16px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: opacity 0.2s;">Run</button>
           </div>
@@ -313,7 +382,13 @@
       </div>
 
       <div class="search-container">
-        <input type="text" id="sheetSearch" placeholder="Search stocks...">
+        <input type="text" id="sheetSearch" placeholder="Search stocks and news...">
+        <button class="clear-search-btn" id="clearSearchBtn">×</button>
+      </div>
+
+      <div id="searchResults" class="search-results-section" style="display: none;">
+        <div class="section-title">SEARCH RESULTS</div>
+        <div id="searchResultsList"></div>
       </div>
 
       <div id="stockList" class="stock-list">
@@ -351,8 +426,12 @@
 
   <script>
     const apiKeyInput = document.getElementById('apiKey');
+    const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
     const sheetSearch = document.getElementById('sheetSearch');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
     const stockListContainer = document.getElementById('stockList');
+    const searchResultsSection = document.getElementById('searchResults');
+    const searchResultsList = document.getElementById('searchResultsList');
     const newsView = document.getElementById('newsView');
     const welcomeState = document.getElementById('welcomeState');
     const newsGrid = document.getElementById('newsGrid');
@@ -361,32 +440,60 @@
     const viewSourceLink = document.getElementById('viewSourceLink');
 
     let allStocks = [];
+    let searchTimeout = null;
+    let isSearching = false;
+
+    // Toggle API key visibility
+    toggleApiKeyBtn.addEventListener('click', () => {
+      if (apiKeyInput.type === 'password') {
+        apiKeyInput.type = 'text';
+        toggleApiKeyBtn.textContent = '🙈';
+        toggleApiKeyBtn.title = 'Hide API key';
+      } else {
+        apiKeyInput.type = 'password';
+        toggleApiKeyBtn.textContent = '👁️';
+        toggleApiKeyBtn.title = 'Show API key';
+      }
+    });
 
     async function fetchStocks() {
+      console.log('📊 Fetching stock links...');
       try {
         const response = await fetch('/api/stock-links', {
           headers: { 'x-api-key': apiKeyInput.value }
         });
         const result = await response.json();
+        console.log('📊 Stock links response:', result);
+        console.log('📊 Number of stocks:', result.data?.length || 0);
+        
         if (result.status === 'success') {
           allStocks = result.data;
+          console.log('📊 All stocks loaded:', allStocks.length);
+          if (allStocks.length > 0) {
+            console.log('📊 First stock:', allStocks[0]);
+          }
           renderStockList(allStocks);
         } else {
           stockListContainer.innerHTML = `<div class="empty-list" style="color: #ff4444">${result.message || 'Error loading stocks'}</div>`;
         }
       } catch (err) {
+        console.error('❌ Error fetching stocks:', err);
         stockListContainer.innerHTML = `<div class="empty-list" style="color: #ff4444">Connection Failed</div>`;
       }
     }
 
     function renderStockList(stocks) {
+      console.log('📋 Rendering stock list:', stocks.length, 'stocks');
       stockListContainer.innerHTML = '';
       if (stocks.length === 0) {
         stockListContainer.innerHTML = '<div class="empty-list">No stocks found</div>';
         return;
       }
 
-      stocks.forEach(stock => {
+      stocks.forEach((stock, index) => {
+        if (index < 3) {
+          console.log(`📋 Stock ${index}:`, stock);
+        }
         const item = document.createElement('div');
         item.className = 'stock-item';
         item.innerHTML = `
@@ -399,9 +506,25 @@
     }
 
     async function fetchStockNews(stock, event) {
+      console.log('📰 Fetching news for stock:', stock);
+      console.log('📰 Stock name:', stock.name);
+      console.log('📰 Stock URL:', stock.url);
+      console.log('📰 Stock spreadsheetId:', stock.spreadsheetId);
+      
+      // Remove active class from all items
       document.querySelectorAll('.stock-item').forEach(el => el.classList.remove('active'));
+      
+      // Add active class to clicked item if event exists
       if (event && event.currentTarget) {
         event.currentTarget.classList.add('active');
+      } else {
+        // If called from search results, find and activate the matching stock item
+        const stockItems = document.querySelectorAll('.stock-item');
+        stockItems.forEach(item => {
+          if (item.querySelector('.name').textContent === stock.name) {
+            item.classList.add('active');
+          }
+        });
       }
 
       welcomeState.style.display = 'none';
@@ -413,17 +536,26 @@
             `;
 
       try {
-        const response = await fetch(`/api/sheet-news/${encodeURIComponent(stock.name)}`, {
+        const encodedName = encodeURIComponent(stock.name);
+        console.log('📰 Encoded name:', encodedName);
+        console.log('📰 Fetching from URL:', `/api/sheet-news/${encodedName}`);
+        
+        const response = await fetch(`/api/sheet-news/${encodedName}`, {
           headers: { 'x-api-key': apiKeyInput.value }
         });
         const result = await response.json();
 
+        console.log('📰 Response status:', response.status);
+        console.log('📰 Response result:', result);
+
         if (result.status === 'success') {
           renderNews(result.data);
         } else {
+          console.error('❌ Failed to fetch news:', result.message);
           newsGrid.innerHTML = `<div style="grid-column: 1/-1; color: #ff4444; text-align:center;">${result.message || 'Failed to fetch news'}</div>`;
         }
       } catch (err) {
+        console.error('❌ Network error:', err);
         newsGrid.innerHTML = `<div style="grid-column: 1/-1; color: #ff4444; text-align:center;">Network error occurred</div>`;
       }
     }
@@ -458,12 +590,107 @@
       });
     }
 
+    async function searchStockNews(query) {
+      if (!query.trim()) {
+        searchResultsSection.style.display = 'none';
+        searchResultsList.innerHTML = '';
+        return;
+      }
+
+      console.log('🔍 Searching for:', query);
+      isSearching = true;
+      searchResultsList.innerHTML = '<div class="empty-list">Searching stocks...</div>';
+      searchResultsSection.style.display = 'block';
+
+      try {
+        const response = await fetch(`/api/stock-links/search?q=${encodeURIComponent(query)}`, {
+          headers: { 'x-api-key': apiKeyInput.value }
+        });
+        const result = await response.json();
+
+        console.log('🔍 Search results:', result);
+        console.log('🔍 Number of results:', result.data?.length || 0);
+        if (result.data && result.data.length > 0) {
+          console.log('🔍 First result:', result.data[0]);
+        }
+
+        if (result.status === 'success' && result.data && result.data.length > 0) {
+          renderSearchResults(result.data.slice(0, 50)); // Limit to 50 results to prevent OOM
+        } else {
+          searchResultsList.innerHTML = '<div class="empty-list">No stocks found</div>';
+        }
+      } catch (err) {
+        console.error('❌ Search error:', err);
+        searchResultsList.innerHTML = '<div class="empty-list" style="color: #ff4444">Search failed</div>';
+      } finally {
+        isSearching = false;
+      }
+    }
+
+    function renderSearchResults(results) {
+      searchResultsList.innerHTML = '';
+      console.log('📋 Rendering search results:', results.length);
+      
+      results.forEach((stock, index) => {
+        console.log(`📋 Result ${index}:`, stock);
+        const resultItem = document.createElement('div');
+        resultItem.className = 'search-result-item';
+        
+        resultItem.innerHTML = `
+          <div class="result-headline">${stock.name}</div>
+          <div class="result-summary">Click to view news for this stock</div>
+        `;
+        
+        resultItem.onclick = () => {
+          console.log('🎯 Clicked search result:', stock);
+          console.log('🎯 Stock name:', stock.name);
+          console.log('🎯 Stock object:', JSON.stringify(stock));
+          // Clear search and select this stock
+          sheetSearch.value = '';
+          clearSearchBtn.classList.remove('visible');
+          searchResultsSection.style.display = 'none';
+          fetchStockNews(stock);
+        };
+        
+        searchResultsList.appendChild(resultItem);
+      });
+    }
+
+    function clearSearch() {
+      sheetSearch.value = '';
+      clearSearchBtn.classList.remove('visible');
+      searchResultsSection.style.display = 'none';
+      searchResultsList.innerHTML = '';
+      renderStockList(allStocks);
+    }
+
 
     sheetSearch.addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase();
-      const filtered = allStocks.filter(s => s.name.toLowerCase().includes(term));
+      const term = e.target.value;
+      
+      // Show/hide clear button
+      if (term.length > 0) {
+        clearSearchBtn.classList.add('visible');
+      } else {
+        clearSearchBtn.classList.remove('visible');
+      }
+
+      // Filter stock list locally
+      const termLower = term.toLowerCase();
+      const filtered = allStocks.filter(s => s.name.toLowerCase().includes(termLower));
       renderStockList(filtered);
+
+      // Debounced API search
+      clearTimeout(searchTimeout);
+      if (term.trim()) {
+        searchTimeout = setTimeout(() => searchStockNews(term), 500);
+      } else {
+        searchResultsSection.style.display = 'none';
+        searchResultsList.innerHTML = '';
+      }
     });
+
+    clearSearchBtn.addEventListener('click', clearSearch);
 
 
     fetchStocks();
