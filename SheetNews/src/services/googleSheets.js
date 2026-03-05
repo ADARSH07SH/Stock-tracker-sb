@@ -46,13 +46,15 @@ class GoogleSheetsService {
     return match ? match[1] : null;
   }
 
-  async getStockScoreSheet() {
+  async getStockScoreSheet(limit = 15) {
     await this.initialize();
 
     try {
+      const endRow = limit + 1;
+
       const response = await this.sheets.spreadsheets.get({
         spreadsheetId: config.google.spreadsheetId,
-        ranges: ['Stock_Score!A:Z'],
+        ranges: [`Stock_Score!A1:B${endRow}`],
         includeGridData: true
       });
 
@@ -66,6 +68,9 @@ class GoogleSheetsService {
       const stockLinks = [];
 
       for (let i = 1; i < rows.length; i++) {
+
+        if (stockLinks.length >= limit) break;
+
         const row = rows[i];
         if (!row.values || !row.values[1]) continue;
 
@@ -87,12 +92,9 @@ class GoogleSheetsService {
         }
       }
 
-
       return stockLinks;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
+      console.error('Error in getStockScoreSheet:', error);
       throw new AppError('Failed to fetch Stock_Score sheet', 500);
     }
   }

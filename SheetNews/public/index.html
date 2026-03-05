@@ -304,7 +304,11 @@
           <label
             style="display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">API
             Key</label>
-          <input type="password" id="apiKey" placeholder="secret123" value="secret123">
+          <div style="display: flex; gap: 8px;">
+            <input type="password" id="apiKey" placeholder="secret123" value="secret123" style="flex: 1;">
+            <button id="refreshBtn"
+              style="background: var(--primary); color: var(--bg-dark); border: none; border-radius: 10px; padding: 0 16px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: opacity 0.2s;">Run</button>
+          </div>
         </div>
       </div>
 
@@ -454,7 +458,7 @@
       });
     }
 
-   
+
     sheetSearch.addEventListener('input', (e) => {
       const term = e.target.value.toLowerCase();
       const filtered = allStocks.filter(s => s.name.toLowerCase().includes(term));
@@ -469,6 +473,8 @@
       clearTimeout(timeout);
       timeout = setTimeout(fetchStocks, 1000);
     });
+
+    document.getElementById('refreshBtn').addEventListener('click', fetchStocks);
 
   </script>
 </body>

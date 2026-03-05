@@ -26,8 +26,8 @@ public class AppVersionService {
         return appVersionRepository.findTopByOrderByCreatedAtDesc()
                 .orElseGet(() -> {
                     AppVersion defaultVersion = new AppVersion(
-                        "3.1.0",
-                        buildDownloadUrl("3.1.0"),
+                        "4.0.1",
+                        buildDownloadUrl("4.0.1"),
                         "Initial release",
                         false
                     );
