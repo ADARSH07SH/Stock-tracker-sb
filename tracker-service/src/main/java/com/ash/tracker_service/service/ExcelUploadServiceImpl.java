@@ -30,13 +30,12 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
 
         List<ExcelStockRowDTO> rows = ExcelParser.parse(file);
 
-        // Clear demo stocks on first real upload so they don't appear as sold
         if (portfolio.isDemoData()) {
             portfolio.setStocks(new ArrayList<>());
             portfolio.setDemoData(false);
             System.out.println("Cleared demo portfolio data for account: " + accountId);
         }
-        
+
         ExcelUploadResponseDTO response = analyzeAndUpdate(portfolio, rows);
 
         portfolio.setUpdatedAt(Instant.now());
@@ -49,68 +48,67 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
     }
 
     private ExcelUploadResponseDTO analyzeAndUpdate(UserPortfolio portfolio, List<ExcelStockRowDTO> newRows) {
-        
+
         Map<String, StockHolding> currentStocksMap = portfolio.getStocks()
                 .stream()
                 .collect(Collectors.toMap(StockHolding::getIsin, s -> s));
-        
+
         Map<String, ExcelStockRowDTO> newStocksMap = newRows
                 .stream()
                 .collect(Collectors.toMap(ExcelStockRowDTO::getIsin, r -> r));
-        
+
         List<StockHolding> updatedHoldings = new ArrayList<>();
         List<SoldStockDetectionDTO> detectedSoldStocks = new ArrayList<>();
-        
+
         int addedCount = 0;
         int updatedCount = 0;
-        
+
         for (ExcelStockRowDTO newRow : newRows) {
             StockHolding existing = currentStocksMap.get(newRow.getIsin());
-            
+
             if (existing == null) {
                 addedCount++;
             } else {
-                if (!existing.getQuantity().equals(newRow.getQuantity()) || 
-                    !existing.getAverageBuyPrice().equals(newRow.getAverageBuyPrice())) {
+                if (!existing.getQuantity().equals(newRow.getQuantity()) ||
+                        !existing.getAverageBuyPrice().equals(newRow.getAverageBuyPrice())) {
                     updatedCount++;
                 }
             }
-            
+
             updatedHoldings.add(
-                StockHolding.builder()
-                        .stockName(newRow.getStockName())
-                        .isin(newRow.getIsin())
-                        .quantity(newRow.getQuantity())
-                        .averageBuyPrice(newRow.getAverageBuyPrice())
-                        .buyValue(newRow.getAverageBuyPrice() * newRow.getQuantity())
-                        .lastUpdated(Instant.now())
-                        .build()
-            );
+                    StockHolding.builder()
+                            .stockName(newRow.getStockName())
+                            .isin(newRow.getIsin())
+                            .quantity(newRow.getQuantity())
+                            .averageBuyPrice(newRow.getAverageBuyPrice())
+                            .buyValue(newRow.getAverageBuyPrice() * newRow.getQuantity())
+                            .lastUpdated(Instant.now())
+                            .build());
         }
-        
+
         for (StockHolding current : portfolio.getStocks()) {
             if (!newStocksMap.containsKey(current.getIsin())) {
                 detectedSoldStocks.add(
-                    SoldStockDetectionDTO.builder()
-                            .stockName(current.getStockName())
-                            .isin(current.getIsin())
-                            .quantity(current.getQuantity())
-                            .averageBuyPrice(current.getAverageBuyPrice())
-                            .investedValue(current.getBuyValue())
-                            .build()
-                );
+                        SoldStockDetectionDTO.builder()
+                                .stockName(current.getStockName())
+                                .isin(current.getIsin())
+                                .quantity(current.getQuantity())
+                                .averageBuyPrice(current.getAverageBuyPrice())
+                                .investedValue(current.getBuyValue())
+                                .build());
             }
         }
-        
+
         portfolio.setStocks(updatedHoldings);
-        
+
         String message;
         if (detectedSoldStocks.isEmpty()) {
             message = "Portfolio updated successfully";
         } else {
-            message = "Portfolio updated. " + detectedSoldStocks.size() + " stock(s) appear to be sold. Please confirm.";
+            message = "Portfolio updated. " + detectedSoldStocks.size()
+                    + " stock(s) appear to be sold. Please confirm.";
         }
-        
+
         return ExcelUploadResponseDTO.builder()
                 .status(detectedSoldStocks.isEmpty() ? "SUCCESS" : "NEEDS_CONFIRMATION")
                 .totalStocks(newRows.size())
@@ -143,7 +141,6 @@ public class ExcelUploadServiceImpl implements ExcelUploadService {
                 portfolio.getStocks()
                         .stream()
                         .mapToDouble(StockHolding::getBuyValue)
-                        .sum()
-        );
+                        .sum());
     }
 }
