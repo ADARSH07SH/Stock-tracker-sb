@@ -17,8 +17,8 @@ public class NotionNewsScheduler {
 
     // @Scheduled disabled - NotionSyncScheduler (scheduler package) handles this correctly
     public void scheduleNotionSync() {
-        log.info("Starting scheduled Notion news sync...");
+       
         notionNewsService.syncNotionNews();
-        log.info("Notion news sync completed.");
+
     }
 }

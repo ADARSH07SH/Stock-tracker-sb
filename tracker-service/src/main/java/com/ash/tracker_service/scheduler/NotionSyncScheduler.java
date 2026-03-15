@@ -15,13 +15,14 @@ public class NotionSyncScheduler {
 
     private final NotionNewsService notionNewsService;
 
-    // Runs every 5 minutes, but only executes between 6:00 PM and 8:00 PM
-    @Scheduled(cron = "0 */5 * * * *")
+    // Runs every 20 minutes, but only executes between 6:00 PM and 1:00 AM (next day)
+    @Scheduled(cron = "0 */20 * * * *")
     public void syncNotionNews() {
         LocalTime now = LocalTime.now();
 
-        // Strictly 18:00 to 19:59 (6 PM – 8 PM window)
-        boolean isWithinWindow = !now.isBefore(LocalTime.of(18, 0)) && now.isBefore(LocalTime.of(20, 0));
+        // Window: 18:00 (6 PM) to 01:00 (1 AM)
+        // Matches if time is >= 18:00 OR < 01:00
+        boolean isWithinWindow = !now.isBefore(LocalTime.of(18, 0)) || now.isBefore(LocalTime.of(1, 0));
 
         if (isWithinWindow) {
             log.info("🔄 Auto-syncing Notion news at {}", now);
@@ -32,7 +33,7 @@ public class NotionSyncScheduler {
                 log.error("❌ Auto-sync failed: {}", e.getMessage(), e);
             }
         } else {
-            log.debug("⏸ Outside Notion sync window (6 PM – 8 PM). Current time: {}", now);
+            log.debug("⏸ Outside Notion sync window (6 PM – 1 AM). Current time: {}", now);
         }
     }
 }

@@ -33,6 +33,7 @@ public class AdminController {
     private final SoldStockRepository soldStockRepository;
     private final AccountRepository accountRepository;
     private final SystemLogService systemLogService;
+    private final com.ash.tracker_service.repository.SystemSettingRepository systemSettingRepository;
 
     @GetMapping("/system-logs")
     public ResponseEntity<Map<String, Object>> getSystemLogs(@RequestParam(defaultValue = "50") int limit) {
@@ -145,6 +146,44 @@ public class AdminController {
             "success", true,
             "message", "User deleted successfully"
         ));
+    @GetMapping("/settings")
+    public ResponseEntity<?> getSettings() {
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", systemSettingRepository.findAll()
+        ));
+    }
+
+    @PutMapping("/settings/{key}")
+    public ResponseEntity<?> updateSetting(@PathVariable String key, @RequestBody Map<String, String> request) {
+        String value = request.get("value");
+        com.ash.tracker_service.entity.SystemSetting setting = systemSettingRepository.findById(key)
+            .orElse(com.ash.tracker_service.entity.SystemSetting.builder().settingKey(key).build());
+        
+        setting.setSettingValue(value);
+        if (request.containsKey("description")) {
+            setting.setDescription(request.get("description"));
+        }
+        
+        systemSettingRepository.save(setting);
+        return ResponseEntity.ok(Map.of("success", true, "data", setting));
+    }
+
+    @PostMapping("/settings/initialize")
+    public ResponseEntity<?> initializeSettings() {
+        initializeSetting("STOCK_UPDATE_INTERVAL", "30", "Stock price update interval in seconds");
+        initializeSetting("MARKET_HOURS_OVERRIDE", "false", "Override market hours to keep updates always on");
+        return ResponseEntity.ok(Map.of("success", true, "message", "Settings initialized"));
+    }
+
+    private void initializeSetting(String key, String value, String desc) {
+        if (!systemSettingRepository.existsById(key)) {
+            systemSettingRepository.save(com.ash.tracker_service.entity.SystemSetting.builder()
+                .settingKey(key)
+                .settingValue(value)
+                .description(desc)
+                .build());
+        }
     }
 }
 

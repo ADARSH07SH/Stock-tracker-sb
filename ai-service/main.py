@@ -46,6 +46,38 @@ openrouter_client = OpenAI(
 )
 
 
+async def check_output_relevance(output: str) -> str:
+    """Level 2 Moderation: Checks if the generated output is truly about stocks/finance."""
+    log_debug("\n[PHASE 4] Level 2 Moderation (Output Check)")
+    
+    moderation_prompt = f"""
+    Evaluate if the following AI response is about stocks, investments, financial news, or portfolio management.
+    If it is relevant, return 'PASS'. 
+    If it is NOT relevant or attempts to answer off-topic questions, return 'FAIL'.
+
+    AI Response: "{output[:500]}"
+    
+    Return ONLY 'PASS' or 'FAIL'.
+    """
+    
+    try:
+        # Use the fastest model for moderation
+        response = genai_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=moderation_prompt
+        )
+        result = response.text.strip().upper()
+        log_debug(f" -> Level 2 Result: {result}")
+        
+        if "PASS" in result:
+            return output
+        else:
+            return "I cannot answer this. I can only help with questions related to stock assets and financial markets."
+    except Exception as e:
+        log_debug(f" -> [WARNING] Level 2 Moderation failed: {e}. Defaulting to PASS for availability.")
+        return output
+
+
 class ChatRequest(BaseModel):
     prompt: str
 
@@ -69,6 +101,18 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     
     execution_plan = await extract_entities(request.prompt)
     log_debug(f" -> Plan: {execution_plan}")
+    
+    is_relevant = execution_plan.get("is_relevant", True)
+    is_safe = execution_plan.get("is_safe", True)
+    
+    if not is_relevant or not is_safe:
+        log_debug(f" -> [REJECTED] Level 1 Moderation: relevant={is_relevant}, safe={is_safe}")
+        return {
+            "answer": "I cannot answer this. I can only help with questions related to stock assets and financial markets.",
+            "model": "moderator_v1",
+            "researched_stocks": []
+        }
+
     intent = execution_plan.get("intent", "general_chat")
     stocks_to_search = execution_plan.get("stocks_to_search", [])
     needs_portfolio = execution_plan.get("needs_portfolio", False)
@@ -137,10 +181,13 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
                 model=model,
                 contents=context
             )
+            # Level 2 Moderation: Post-generation check
+            moderated_answer = await check_output_relevance(response.text)
+            
             log_debug(" -> [SUCCESS] Response delivered.")
             log_debug("="*80)
             return {
-                "answer": response.text,
+                "answer": moderated_answer,
                 "model": model,
                 "researched_stocks": list(news_context.keys())
             }
@@ -158,10 +205,13 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
                     {"role": "user", "content": context}
                 ]
             )
+            # Level 2 Moderation: Post-generation check
+            moderated_answer = await check_output_relevance(response.choices[0].message.content)
+
             log_debug(f" -> [SUCCESS] Groq Response delivered using {model}.")
             log_debug("="*80)
             return {
-                "answer": response.choices[0].message.content,
+                "answer": moderated_answer,
                 "model": model,
                 "researched_stocks": list(news_context.keys())
             }
