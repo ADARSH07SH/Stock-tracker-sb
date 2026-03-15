@@ -109,6 +109,8 @@ logs/
 *.pid
 *.seed
 *.pid.lock
+build_output.txt
+**/build_output.txt
 
 # ========================
 # Documentation (except README)
