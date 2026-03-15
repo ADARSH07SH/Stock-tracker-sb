@@ -146,6 +146,8 @@ public class AdminController {
             "success", true,
             "message", "User deleted successfully"
         ));
+    }
+
     @GetMapping("/settings")
     public ResponseEntity<?> getSettings() {
         return ResponseEntity.ok(Map.of(

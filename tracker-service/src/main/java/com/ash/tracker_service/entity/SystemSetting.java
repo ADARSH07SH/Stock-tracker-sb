@@ -1,15 +1,13 @@
 package com.ash.tracker_service.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "system_settings")
+@Document(collection = "system_settings")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
