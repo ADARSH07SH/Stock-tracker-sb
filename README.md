@@ -50,7 +50,8 @@ Stock-Tracker/
 ├── ai-service/           # AI features
 ├── SheetNews/            # News aggregation
 ├── mobile-app-v3/        # React Native mobile app (private)
-└── docker-compose.yml    # Production deployment config
+├── monitoring-service/   # Prometheus, Grafana, AlertManager
+└── docker-compose.yml    # Complete deployment config with monitoring
 ```
 
 ## 🔐 Security

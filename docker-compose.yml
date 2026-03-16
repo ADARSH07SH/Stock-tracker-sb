@@ -10,12 +10,18 @@ services:
     mem_limit: 280m
     mem_reservation: 180m
     restart: always
+    environment:
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus
+      - MANAGEMENT_ENDPOINT_PROMETHEUS_ENABLED=true
     healthcheck:
       test: ["CMD","curl","-f","http://localhost:8081/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - app-network
+      - monitoring
 
   tracker-service:
     build: ./tracker-service
@@ -25,6 +31,9 @@ services:
     mem_limit: 280m
     mem_reservation: 180m
     restart: always
+    environment:
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus
+      - MANAGEMENT_ENDPOINT_PROMETHEUS_ENABLED=true
     depends_on:
       auth-service:
         condition: service_healthy
@@ -34,6 +43,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - app-network
+      - monitoring
 
   ai-service:
     build: ./ai-service
@@ -43,6 +55,9 @@ services:
     mem_limit: 180m
     mem_reservation: 120m
     restart: always
+    networks:
+      - app-network
+      - monitoring
 
   sheetnews-service:
     build: ./SheetNews
@@ -52,7 +67,92 @@ services:
     mem_limit: 150m
     mem_reservation: 100m
     restart: always
+    networks:
+      - app-network
+      - monitoring
+
+  # Monitoring Services
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring-service/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring-service/prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring-service/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring-service/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring-service/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
 
 networks:
-  default:
+  app-network:
     driver: bridge
+  monitoring:
+    driver: bridge
+    # Remove 'internal: true' to allow Nginx access
+    # But monitoring services are still isolated from external access

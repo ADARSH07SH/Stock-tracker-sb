@@ -1,0 +1,61 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Auth Service
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:8081']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+
+  # Tracker Service
+  - job_name: 'tracker-service'
+    static_configs:
+      - targets: ['tracker-service:8082']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+
+  # AI Service
+  - job_name: 'ai-service'
+    static_configs:
+      - targets: ['ai-service:8084']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # SheetNews Service
+  - job_name: 'sheetnews-service'
+    static_configs:
+      - targets: ['sheetnews-service:3005']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # MongoDB Exporter
+  - job_name: 'mongodb-exporter'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+
+  # Nginx Exporter
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']

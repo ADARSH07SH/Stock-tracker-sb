@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const rateLimiter = require('./middleware/rateLimiter');
+const { metricsMiddleware, getMetrics } = require('./middleware/metrics');
 const errorHandler = require('./middleware/errorHandler');
 const healthRoutes = require('./routes/healthRoutes');
 const stockRoutes = require('./routes/stockRoutes');
@@ -12,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Add metrics middleware
+app.use(metricsMiddleware);
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -19,6 +22,9 @@ app.use((req, res, next) => {
 });
 
 app.use(rateLimiter);
+
+// Metrics endpoint
+app.get('/metrics', getMetrics);
 
 app.use('/', healthRoutes);
 app.use('/api', stockRoutes);
