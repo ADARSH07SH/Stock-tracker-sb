@@ -21,10 +21,40 @@ jobs:
           script: |
             cd ~/Stock-tracker-sb 
             git pull origin main
+            echo "Setting up monitoring configurations..."
+            mkdir -p monitoring-service/prometheus/rules
+            mkdir -p monitoring-service/grafana/provisioning/datasources
+            mkdir -p monitoring-service/grafana/provisioning/dashboards
+            mkdir -p monitoring-service/grafana/dashboards
+            mkdir -p monitoring-service/alertmanager
+            echo "Copying monitoring configs from repository..."
+            cp configs-staging-example/prometheus.yml monitoring-service/prometheus/prometheus.yml
+            cp configs-staging-example/alertmanager.yml monitoring-service/alertmanager/alertmanager.yml
+            cp configs-staging-example/stock-tracker-alerts.yml monitoring-service/prometheus/rules/stock-tracker-alerts.yml
+            cp configs-staging-example/prometheus-datasource.yml monitoring-service/grafana/provisioning/datasources/prometheus.yml
+            cp configs-staging-example/dashboard-config.yml monitoring-service/grafana/provisioning/dashboards/dashboard.yml
+            cp configs-staging-example/stock-tracker-overview.json monitoring-service/grafana/dashboards/stock-tracker-overview.json
+            echo "Setting up monitoring permissions..."
+            sudo chown -R 472:472 monitoring-service/grafana/
+            chmod 755 monitoring-service/
+            chmod -R 644 monitoring-service/prometheus/
+            chmod -R 644 monitoring-service/alertmanager/
             echo "Stopping old containers..."
             docker compose down
-            echo "Building & deploying services..."
+            echo "Building & deploying all services..."
             docker compose up -d --build
+            echo "Waiting for services to start..."
+            sleep 30
+            echo "Checking service status..."
+            docker compose ps
             echo "Cleaning up..."
             docker image prune -f
             echo "Deployment complete!"
+            echo "Services available:"
+            echo "- Auth: http://$(curl -s ifconfig.me):8081"
+            echo "- Tracker: http://$(curl -s ifconfig.me):8082"
+            echo "- AI: http://$(curl -s ifconfig.me):8084"
+            echo "- SheetNews: http://$(curl -s ifconfig.me):3005"
+            echo "- Grafana: http://$(curl -s ifconfig.me):3000"
+            echo "- Prometheus: http://$(curl -s ifconfig.me):9090"
+            echo "- AlertManager: http://$(curl -s ifconfig.me):9093"

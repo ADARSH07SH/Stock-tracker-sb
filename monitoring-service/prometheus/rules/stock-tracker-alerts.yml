@@ -1,7 +1,6 @@
 groups:
   - name: stock-tracker-alerts
     rules:
-      # Service Health Alerts
       - alert: ServiceDown
         expr: up == 0
         for: 1m
@@ -11,7 +10,6 @@ groups:
           summary: "Service {{ $labels.job }} is down"
           description: "Service {{ $labels.job }} has been down for more than 1 minute."
 
-      # High CPU Usage
       - alert: HighCPUUsage
         expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
         for: 5m
@@ -21,7 +19,6 @@ groups:
           summary: "High CPU usage on {{ $labels.instance }}"
           description: "CPU usage is above 80% for more than 5 minutes."
 
-      # High Memory Usage
       - alert: HighMemoryUsage
         expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
         for: 5m
@@ -31,7 +28,6 @@ groups:
           summary: "High memory usage on {{ $labels.instance }}"
           description: "Memory usage is above 85% for more than 5 minutes."
 
-      # High Disk Usage
       - alert: HighDiskUsage
         expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 90
         for: 5m
@@ -41,7 +37,6 @@ groups:
           summary: "High disk usage on {{ $labels.instance }}"
           description: "Disk usage is above 90% for more than 5 minutes."
 
-      # HTTP Error Rate
       - alert: HighErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
         for: 2m
@@ -51,7 +46,6 @@ groups:
           summary: "High error rate on {{ $labels.job }}"
           description: "Error rate is above 5% for more than 2 minutes."
 
-      # Response Time Alert
       - alert: HighResponseTime
         expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
         for: 5m
@@ -61,7 +55,6 @@ groups:
           summary: "High response time on {{ $labels.job }}"
           description: "95th percentile response time is above 2 seconds."
 
-      # Database Connection Alert
       - alert: DatabaseConnectionIssue
         expr: mongodb_up == 0
         for: 1m
@@ -71,7 +64,6 @@ groups:
           summary: "MongoDB connection issue"
           description: "Cannot connect to MongoDB database."
 
-      # Portfolio Sync Alert
       - alert: PortfolioSyncFailure
         expr: increase(portfolio_sync_failures_total[1h]) > 5
         for: 0m
@@ -81,7 +73,6 @@ groups:
           summary: "Multiple portfolio sync failures"
           description: "More than 5 portfolio sync failures in the last hour."
 
-      # AI Service Alert
       - alert: AIServiceHighLatency
         expr: histogram_quantile(0.95, rate(ai_request_duration_seconds_bucket[5m])) > 10
         for: 3m
